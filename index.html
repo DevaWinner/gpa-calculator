@@ -18,7 +18,7 @@
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 class="text-3xl font-black tracking-tight text-indigo-700">GPA Calculator</h1>
-        <p class="text-sm text-gray-600">Single-institution evaluator with retakes, modal picker, and local storage.</p>
+        <p class="text-sm text-gray-600">Single‑institution evaluator with retakes, correct W handling, and transcript stats.</p>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
         <label class="text-sm font-medium text-gray-700" for="institution">Institution</label>
@@ -32,21 +32,49 @@
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 sm:px-6 pb-16">
-    <!-- Summary Cards -->
-    <section id="summary" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-      <div class="rounded-2xl bg-indigo-50 p-4 text-center ring-1 ring-indigo-100">
-        <h3 class="text-indigo-700 font-semibold">Cumulative GPA</h3>
-        <p id="cumGpa" class="text-3xl font-black text-indigo-900">0.00</p>
-      </div>
-      <div class="rounded-2xl bg-green-50 p-4 text-center ring-1 ring-green-100">
-        <h3 class="text-green-700 font-semibold">Total Credits</h3>
-        <p id="cumCredits" class="text-3xl font-black text-green-900">0</p>
-      </div>
-    </section>
-
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 pb-24">
     <!-- Terms Container -->
     <section class="space-y-8" id="terms"></section>
+
+    <!-- End of Transcript Statistics -->
+    <section id="transcriptStats" class="mt-10">
+      <h2 class="text-xl font-bold text-gray-800 mb-3">End of Transcript Statistics</h2>
+      <div class="w-full bg-white rounded-2xl ring-1 ring-gray-200 shadow-sm overflow-hidden">
+        <div class="grid grid-cols-12 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-600">
+          <div class="col-span-3 px-4 py-2">&nbsp;</div>
+          <div class="col-span-2 px-4 py-2 text-center">GPA</div>
+          <div class="col-span-2 px-4 py-2 text-center">Attempted</div>
+          <div class="col-span-2 px-4 py-2 text-center">Earned</div>
+          <div class="col-span-3 px-4 py-2 text-center">Quality Pts</div>
+        </div>
+        <!-- Transfer Row -->
+        <div class="grid grid-cols-12 border-b border-gray-100 items-center text-sm">
+          <div class="col-span-3 px-4 py-2 font-semibold text-gray-800">Transfer</div>
+          <div class="col-span-2 px-4 py-2 text-center text-gray-500">— — —</div>
+          <div class="col-span-2 px-4 py-2 text-center text-gray-500">— — —</div>
+          <div class="col-span-2 px-4 py-2 text-center">
+            <span id="transferEarned" contenteditable="true" class="inline-block min-w-[3ch] text-gray-900 px-2 py-1 rounded-md border border-gray-200 focus-ring">0</span>
+          </div>
+          <div class="col-span-3 px-4 py-2 text-center text-gray-500">0.00</div>
+        </div>
+        <!-- Institution Totals Row -->
+        <div class="grid grid-cols-12 border-b border-gray-100 items-center text-sm">
+          <div class="col-span-3 px-4 py-2 font-semibold text-gray-800">Institution Totals</div>
+          <div class="col-span-2 px-4 py-2 text-center" id="instGpa">0.00</div>
+          <div class="col-span-2 px-4 py-2 text-center" id="instAttempted">0</div>
+          <div class="col-span-2 px-4 py-2 text-center" id="instEarned">0</div>
+          <div class="col-span-3 px-4 py-2 text-center" id="instQP">0.00</div>
+        </div>
+        <!-- Overall Totals Row -->
+        <div class="grid grid-cols-12 items-center text-sm">
+          <div class="col-span-3 px-4 py-2 font-semibold text-gray-800">Overall Totals</div>
+          <div class="col-span-2 px-4 py-2 text-center" id="overallGpa">0.00</div>
+          <div class="col-span-2 px-4 py-2 text-center" id="overallAttempted">0</div>
+          <div class="col-span-2 px-4 py-2 text-center" id="overallEarned">0</div>
+          <div class="col-span-3 px-4 py-2 text-center" id="overallQP">0.00</div>
+        </div>
+      </div>
+    </section>
 
     <!-- Controls -->
     <div class="sticky bottom-4 mt-10 flex justify-center">
@@ -56,7 +84,7 @@
 
   <!-- Row Template -->
   <template id="rowTemplate">
-    <tr class="course-row">
+    <tr class="course-row" data-row-id="">
       <td class="px-3 py-2">
         <div class="relative w-40 sm:w-48 md:w-56">
           <input type="text" placeholder="CSC 101" class="focus-ring w-full p-2 pr-10 border border-gray-300 rounded-lg bg-white text-gray-700 placeholder-gray-400 courseName" />
@@ -92,9 +120,7 @@
           <h3 class="font-semibold text-gray-800">Select earlier course to replace</h3>
           <button class="px-2 py-1 text-gray-500 hover:text-gray-700" data-close="1">✕</button>
         </div>
-        <div class="max-h-80 overflow-y-auto" id="retakeList">
-          <!-- options injected here -->
-        </div>
+        <div class="max-h-80 overflow-y-auto" id="retakeList"></div>
         <div class="px-4 py-3 border-t text-right">
           <button class="rounded-lg px-3 py-2 border" data-close="1">Close</button>
         </div>
@@ -103,28 +129,31 @@
   </div>
 
   <script>
-    // --- Fixed 4.0 scale with +/- and W/UW policy ---
+    // Fixed 4.0 scale with +/- ; W excluded from GPA math; UW = 0
     const SCALE = {
       letters: ['A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','UW','W'],
-      points: { 'A':4.0,'A-':3.7,'B+':3.4,'B':3.0,'B-':2.7,'C+':2.4,'C':2.0,'C-':1.7,'D+':1.4,'D':1.0,'D-':0.7,'F':0.0,'UW':0.0,'W': null } // W excluded from GPA
+      points: { 'A':4.0,'A-':3.7,'B+':3.4,'B':3.0,'B-':2.7,'C+':2.4,'C':2.0,'C-':1.7,'D+':1.4,'D':1.0,'D-':0.7,'F':0.0,'UW':0.0,'W': null }
     };
 
-    const STORAGE_KEY = 'gpa_state_v2';
+    const STORAGE_KEY = 'gpa_state_v3';
 
     const $ = (sel, root=document) => root.querySelector(sel);
     const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-    const termsEl   = $('#terms');
-    const addTermBtn= $('#addTerm');
-    const instSel   = $('#institution');
+    const termsEl    = $('#terms');
+    const addTermBtn = $('#addTerm');
+    const instSel    = $('#institution');
 
     const decimalsFor = () => instSel.value === 'Ensign' ? 3 : 2;
     const fmt = (n, d=decimalsFor()) => Number.isFinite(n) ? n.toFixed(d) : (0).toFixed(d);
 
+    // Local state
     let nextRowId = 1;
+    let transferEarned = 0; // editable only in transcript stats
+
     const genRowId = () => String(nextRowId++);
 
-    // ----- Grade options
+    // Build grade options into a select
     function makeGradeSelectOptions(selectEl) {
       const letters = SCALE.letters;
       const current = selectEl.value;
@@ -136,13 +165,11 @@
       if (letters.includes(current)) selectEl.value = current; else selectEl.value = letters.at(-1);
     }
 
-    // ----- Modal helpers
+    // --- Retake modal helpers ---
     const modalEl = $('#retakeModal');
     const modalList = $('#retakeList');
-    let modalCtx = null; // { rowId, termIdx }
 
     function openRetakeModal(currentRow, termIdx) {
-      // Build list of earlier rows
       modalList.innerHTML = '';
       const items = buildEarlierCourseOptions(termIdx, currentRow.dataset.rowId);
       if (items.length === 0) {
@@ -162,7 +189,6 @@
           modalList.appendChild(btn);
         }
       }
-      modalCtx = { rowId: currentRow.dataset.rowId, termIdx };
       modalEl.classList.remove('hidden');
       document.body.classList.add('modal-open');
     }
@@ -170,14 +196,11 @@
     function closeRetakeModal() {
       modalEl.classList.add('hidden');
       document.body.classList.remove('modal-open');
-      modalCtx = null;
     }
 
-    modalEl.addEventListener('click', (e) => {
-      if (e.target.dataset.close) closeRetakeModal();
-    });
+    modalEl.addEventListener('click', (e) => { if (e.target.dataset.close) closeRetakeModal(); });
 
-    // ----- Term + Row creation
+    // --- Term & rows ---
     function createTermCard(index) {
       const wrapper = document.createElement('div');
       wrapper.className = 'term bg-white rounded-2xl shadow-sm ring-1 ring-gray-300 overflow-hidden';
@@ -210,14 +233,13 @@
             <tbody class="divide-y divide-gray-200" id="tbody-${index}"></tbody>
           </table>
         </div>
-        <!-- Term Summary (no duplicate totals rows) -->
+        <!-- Term Summary (two rows only) -->
         <div class="px-4 py-4 bg-gray-50 border-t border-gray-200">
-          <!-- Header -->
-          <div class="grid grid-cols-12 gap-2 text-sm">
+          <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-600">
             <div class="col-span-3"></div>
-            <div class="col-span-3 font-medium text-gray-600 text-center">Attempted</div>
-            <div class="col-span-3 font-medium text-gray-600 text-center">Earned</div>
-            <div class="col-span-3 font-medium text-gray-600 text-center">Quality Points</div>
+            <div class="col-span-3 text-center">Attempted</div>
+            <div class="col-span-3 text-center">Earned</div>
+            <div class="col-span-3 text-center">Quality Points</div>
           </div>
           <!-- Term GPA Row -->
           <div class="grid grid-cols-12 items-center mt-1">
@@ -249,12 +271,12 @@
       const gradeSel = tr.querySelector('select.grade');
       makeGradeSelectOptions(gradeSel);
       tb.appendChild(tr);
-      saveState();
       refreshRetakeMarks();
+      saveState();
       return tr;
     }
 
-    // Build list of earlier courses (for modal)
+    // Earlier courses for modal list
     function buildEarlierCourseOptions(currentTermIdx, currentRowId) {
       const opts = [];
       for (const t of $$('.term')) {
@@ -273,21 +295,19 @@
       return opts;
     }
 
-    // ----- Retake plumbing
+    // Retake logic helpers
     function computeRetakeExclusionsMap() {
-      const excludeFromTerm = {}; // rid -> startTermIdx
+      const excludeFromTerm = {}; // rowId -> startTermIdx
       for (const t of $$('.term')) {
         const termIdx = Number(t.dataset.termIndex);
         for (const r of $$('.course-row', t)) {
           const target = r.dataset.retakeOf;
-          if (target) {
-            // Only exclude if target is in an earlier term
-            const targetRow = $$(`.course-row[data-row-id="${target}"]`).find(Boolean);
-            if (!targetRow) continue;
-            const targetTerm = Number(targetRow.closest('.term').dataset.termIndex);
-            if (targetTerm < termIdx) {
-              excludeFromTerm[target] = Math.min(excludeFromTerm[target] ?? termIdx, termIdx);
-            }
+          if (!target) continue;
+          const targetRow = document.querySelector(`.course-row[data-row-id="${target}"]`);
+          if (!targetRow) continue;
+          const targetTermIdx = Number(targetRow.closest('.term').dataset.termIndex);
+          if (targetTermIdx < termIdx) {
+            excludeFromTerm[target] = Math.min(excludeFromTerm[target] ?? termIdx, termIdx);
           }
         }
       }
@@ -311,20 +331,18 @@
     }
 
     function refreshRetakeMarks() {
-      // Clear all marks
-      $$('.course-row').forEach(r => $('.retakeStar', r).classList.add('hidden'));
-      // Apply marks to both the earlier course and the retaking row
+      $$('.course-row').forEach(r => $('.retakeStar', r)?.classList.add('hidden'));
       for (const r of $$('.course-row')) {
         const target = r.dataset.retakeOf;
         if (!target) continue;
-        const earlier = $$(`.course-row[data-row-id="${target}"]`).find(Boolean);
+        const earlier = document.querySelector(`.course-row[data-row-id="${target}"]`);
         if (!earlier) continue;
-        $('.retakeStar', r).classList.remove('hidden');
-        $('.retakeStar', earlier).classList.remove('hidden');
+        $('.retakeStar', r)?.classList.remove('hidden');
+        $('.retakeStar', earlier)?.classList.remove('hidden');
       }
     }
 
-    // ----- Math
+    // Math per term (W counts as Attempted; GPA denominator = Earned)
     function termCalc(termCard, excludeFromTermMap) {
       const rows = $$('.course-row', termCard);
       const termIdx = Number(termCard.dataset.termIndex);
@@ -333,39 +351,40 @@
       let attempted = 0, earned = 0, qp = 0;
 
       for (const r of rows) {
-        const rid = r.dataset.rowId;
+        const rid   = r.dataset.rowId;
         const units = parseFloat($('.units', r).value) || 0;
         const grade = $('.grade', r).value;
-        const gValRaw = map[grade];
-        const gVal = gValRaw === null ? null : (gValRaw ?? 0);
+        const gRaw  = map[grade];
+        const gVal  = gRaw === null ? null : (gRaw ?? 0);
 
-        // Row UI
-        const rowG = gVal === null ? '*' : gVal;
-        $('.gradeVal', r).textContent = gVal === null ? '*' : fmt(rowG);
-        const q = gVal === null ? 0 : (units * gVal);
-        $('.quality', r).textContent = fmt(q);
-
-        if (gVal === null) continue; // W doesn't count
-
-        // Term aggregation (always counts its own term rows)
+        // Always count attempted (even W)
         attempted += units;
-        qp += q;
-        if (gVal > 0) earned += units;
 
-        // Cache for cumulative phase
+        // UI cells
+        const q = gVal === null ? 0 : (units * gVal);
+        $('.gradeVal', r).textContent = gVal === null ? '*' : fmt(gVal);
+        $('.quality',  r).textContent = fmt(q);
+
+        // Earned excludes W and any non-passing (gVal <= 0)
+        if (gVal > 0) earned += units;
+        qp += q;
+
+        // Cache for cumulative
         r.__gpaRowCache = { units, gVal, q, rid, termIdx, exclusionStart: excludeFromTermMap[rid] };
       }
 
-      const gpa = attempted > 0 ? qp / attempted : 0;
-      // Update row in header and summary row
+      const denom = earned > 0 ? earned : 0; // GPA denominator is earned credits
+      const gpa = denom > 0 ? (qp / denom) : 0;
+
       termCard.querySelectorAll('.termGpa').forEach(el => el.textContent = fmt(gpa));
       $('.termAttempted', termCard).textContent = fmt(attempted);
-      $('.termEarned', termCard).textContent = fmt(earned);
-      $('.termQP', termCard).textContent = fmt(qp);
+      $('.termEarned',    termCard).textContent = fmt(earned);
+      $('.termQP',        termCard).textContent = fmt(qp);
 
       return { attempted, earned, qp };
     }
 
+    // Cumulative up to term index (apply retake exclusions)
     function computeCumMetrics(upToTermIdx) {
       let attempted = 0, earned = 0, qp = 0;
       for (const t of $$('.term')) {
@@ -373,41 +392,56 @@
         if (tIdx > upToTermIdx) break;
         for (const r of $$('.course-row', t)) {
           const c = r.__gpaRowCache; if (!c) continue;
-          if (c.gVal === null) continue;
           const excludedNow = c.exclusionStart !== undefined && upToTermIdx >= c.exclusionStart;
           if (excludedNow) continue;
+          // Attempted always includes, even if gVal is null (W)
           attempted += c.units;
-          qp += c.q;
           if (c.gVal > 0) earned += c.units;
+          if (c.gVal !== null) qp += c.q; // W contributes 0 QP already
         }
       }
-      const gpa = attempted > 0 ? qp / attempted : 0;
+      const denom = earned > 0 ? earned : 0;
+      const gpa = denom > 0 ? (qp / denom) : 0;
       return { attempted, earned, qp, gpa };
     }
 
     function recalcAll() {
       const excludeFromTermMap = computeRetakeExclusionsMap();
 
-      // Pass 1: compute per-term and cache rows
+      // Pass 1: per-term
       const terms = $$('.term');
       terms.forEach(t => termCalc(t, excludeFromTermMap));
 
-      // Pass 2: cumulative per term
+      // Pass 2: cumulative rows per term
       terms.forEach(t => {
         const tIdx = Number(t.dataset.termIndex);
         const { attempted, earned, qp, gpa } = computeCumMetrics(tIdx);
         $('.cumAttempted', t).textContent = fmt(attempted);
-        $('.cumEarned', t).textContent = fmt(earned);
-        $('.cumQP', t).textContent = fmt(qp);
-        $('.cumGpa', t).textContent = fmt(gpa);
+        $('.cumEarned',    t).textContent = fmt(earned);
+        $('.cumQP',        t).textContent = fmt(qp);
+        $('.cumGpa',       t).textContent = fmt(gpa);
       });
 
-      // Top summary is the last term's cumulative
+      // Transcript stats: institution row uses last term cumulative
       const lastIdx = terms.length ? Number(terms[terms.length - 1].dataset.termIndex) : 0;
-      const top = computeCumMetrics(lastIdx);
-      $('#cumGpa').textContent = fmt(top.gpa);
-      $('#cumCredits').textContent = fmt(top.attempted);
+      const inst = computeCumMetrics(lastIdx);
+      $('#instGpa').textContent        = fmt(inst.gpa);
+      $('#instAttempted').textContent  = fmt(inst.attempted);
+      $('#instEarned').textContent     = fmt(inst.earned);
+      $('#instQP').textContent         = fmt(inst.qp);
 
+      // Overall = institution + transfer (only Earned is provided for transfer; GPA, Attempted, QP are dashes/zero per spec)
+      const overallAttempted = inst.attempted; // transfer attempted is ---
+      const overallEarned    = inst.earned + (Number.isFinite(transferEarned) ? transferEarned : 0);
+      const overallQP        = inst.qp; // transfer QP = 0.00
+      const overallGpa       = inst.gpa; // same logic since attempted unchanged
+
+      $('#overallAttempted').textContent = fmt(overallAttempted);
+      $('#overallEarned').textContent    = fmt(overallEarned);
+      $('#overallQP').textContent        = fmt(overallQP);
+      $('#overallGpa').textContent       = fmt(overallGpa);
+
+      // Persist
       saveState();
     }
 
@@ -419,11 +453,12 @@
       refreshRetakeMarks();
     }
 
-    // ----- Persistence
+    // ----- Persistence -----
     function serializeState() {
-      const state = {
+      return {
         institution: instSel.value,
         nextRowId,
+        transferEarned,
         terms: $$('.term').map(t => ({
           termIndex: Number(t.dataset.termIndex),
           rows: $$('.course-row', t).map(r => ({
@@ -435,7 +470,6 @@
           }))
         }))
       };
-      return state;
     }
 
     function saveState() {
@@ -450,14 +484,16 @@
         const state = JSON.parse(raw);
         instSel.value = state.institution || 'BYUI';
         nextRowId = state.nextRowId || 1;
+        transferEarned = Number(state.transferEarned) || 0;
+        $('#transferEarned').textContent = String(transferEarned);
+
         termsEl.innerHTML = '';
         for (const t of state.terms || []) {
           const termCard = createTermCard(t.termIndex);
-          // clear the seeded row
           termCard.querySelector('tbody').innerHTML = '';
           for (const r of t.rows) {
             const tr = addCourseRow(termCard);
-            tr.dataset.rowId = r.id; // preserve id
+            tr.dataset.rowId = r.id;
             $('.courseName', tr).value = r.name || '';
             $('.units', tr).value = r.units ?? '';
             $('.grade', tr).value = r.grade || 'W';
@@ -475,7 +511,7 @@
       }
     }
 
-    // ----- Event Listeners
+    // ----- Events -----
     addTermBtn.addEventListener('click', () => {
       const next = $$('.term').length + 1;
       const t = createTermCard(next);
@@ -505,6 +541,8 @@
           const g = row.querySelector('.grade'); g.value = 'W';
           clearRetake(row);
         }
+        // Deleting a row clears saved state entirely (per earlier requirement)
+        localStorage.removeItem(STORAGE_KEY);
         renumberTerms();
         recalcAll();
       }
@@ -512,6 +550,8 @@
       if (target.classList.contains('removeTerm')) {
         const card = target.closest('.term');
         card.remove();
+        // Deleting a term clears saved state entirely
+        localStorage.removeItem(STORAGE_KEY);
         renumberTerms();
         recalcAll();
       }
@@ -523,20 +563,20 @@
       }
     });
 
-    // Input changes
+    // Inputs + select changes
     termsEl.addEventListener('input', (e) => {
       const el = e.target;
       if (!(el instanceof HTMLElement)) return;
       if (el.matches('input, select')) {
         if (el.classList.contains('retakeToggle')) {
           const row = el.closest('.course-row');
-          const chooseBtn = row.querySelector('.chooseRetake');
+          const btn = row.querySelector('.chooseRetake');
           if (el.checked) {
-            chooseBtn.classList.remove('hidden');
+            btn.classList.remove('hidden');
             const term = el.closest('.term');
             openRetakeModal(row, Number(term.dataset.termIndex));
           } else {
-            chooseBtn.classList.add('hidden');
+            btn.classList.add('hidden');
             clearRetake(row);
           }
         }
@@ -544,7 +584,20 @@
       }
     });
 
-    instSel.addEventListener('change', () => {
+    // Handle select changes explicitly (grades)
+    termsEl.addEventListener('change', (e) => {
+      const el = e.target;
+      if (!(el instanceof HTMLElement)) return;
+      if (el.matches('select')) recalcAll();
+    });
+
+    // Institution rounding change
+    instSel.addEventListener('change', () => { recalcAll(); });
+
+    // Transfer earned editable
+    $('#transferEarned').addEventListener('input', (e) => {
+      const val = parseFloat(e.currentTarget.textContent.trim());
+      transferEarned = Number.isFinite(val) ? Math.max(0, val) : 0;
       recalcAll();
     });
 
@@ -554,25 +607,28 @@
       termsEl.innerHTML = '';
       seedDefaultTerms(3);
       instSel.value = 'BYUI';
+      transferEarned = 0;
+      $('#transferEarned').textContent = '0';
       recalcAll();
     });
 
-    // Seed
     function seedDefaultTerms(n=3) {
       for (let i=1; i<=n; i++) termsEl.appendChild(createTermCard(i));
     }
 
     // Boot
-    if (!restoreState()) {
-      seedDefaultTerms(3);
-      // Prime grade selects
-      $$('.grade').forEach(makeGradeSelectOptions);
-      recalcAll();
-    } else {
-      // ensure selects options exist after restore
-      $$('.grade').forEach(makeGradeSelectOptions);
-      recalcAll();
+    function boot() {
+      if (!restoreState()) {
+        seedDefaultTerms(3);
+        $$('.grade').forEach(makeGradeSelectOptions);
+        recalcAll();
+      } else {
+        $$('.grade').forEach(makeGradeSelectOptions);
+        recalcAll();
+      }
     }
+
+    boot();
   </script>
 </body>
 </html>
