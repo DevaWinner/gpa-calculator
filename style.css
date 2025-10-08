@@ -1,0 +1,17 @@
+:root {
+	--ring: 0 0 0 3px rgba(99, 102, 241, 0.28);
+}
+
+.focus-ring:focus {
+	outline: none;
+	box-shadow: var(--ring);
+}
+
+th,
+td {
+	white-space: nowrap;
+}
+
+.modal-open {
+	overflow: hidden;
+}
