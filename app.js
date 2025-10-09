@@ -73,41 +73,7 @@ function makeGradeSelectOptions(selectEl) {
 }
 
 // --- Retake modal helpers ---
-const modalEl = $("#retakeModal");
-const modalList = $("#retakeList");
-
-function openRetakeModal(currentRow, termIdx) {
-	modalList.innerHTML = "";
-	const items = buildEarlierCourseOptions(termIdx, currentRow.dataset.rowId);
-	if (items.length === 0) {
-		const empty = document.createElement("div");
-		empty.className = "px-4 py-6 text-sm text-gray-500";
-		empty.textContent = "No earlier courses available to replace.";
-		modalList.appendChild(empty);
-	} else {
-		for (const { value, label } of items) {
-			const btn = document.createElement("button");
-			btn.className = "w-full text-left px-4 py-3 hover:bg-gray-50 border-b";
-			btn.textContent = label;
-			btn.addEventListener("click", () => {
-				setRetake(currentRow, value);
-				closeRetakeModal();
-			});
-			modalList.appendChild(btn);
-		}
-	}
-	modalEl.classList.remove("hidden");
-	document.body.classList.add("modal-open");
-}
-
-function closeRetakeModal() {
-	modalEl.classList.add("hidden");
-	document.body.classList.remove("modal-open");
-}
-
-modalEl.addEventListener("click", (e) => {
-	if (e.target.dataset.close) closeRetakeModal();
-});
+// Removed modal code
 
 // --- Term & rows ---
 function createTermCard(index) {
@@ -125,8 +91,11 @@ function createTermCard(index) {
 						)}</strong></span>
           </div>
           <div class="flex items-center gap-3">
-            <button class="addCourse rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 text-sm">+ Add Course</button>
-            <button class="removeTerm text-red-600 hover:text-red-800 text-sm">Remove Term</button>
+            <button class="removeTerm p-2 text-red-600 hover:text-red-800 transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
           </div>
         </div>
         <div class="overflow-x-auto">
@@ -138,11 +107,21 @@ function createTermCard(index) {
                 <th class="px-3 py-2 text-left">Grade</th>
                 <th class="px-3 py-2 text-center">Grade Value</th>
                 <th class="px-3 py-2 text-center">Quality Points</th>
-                <th class="px-3 py-2 text-left">Retake</th>
                 <th class="px-3 py-2 text-center">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200" id="tbody-${index}"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="6" class="px-3 py-3 text-center">
+                  <button class="addCourse inline-flex items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors group">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
         <!-- Term Summary (two rows only) -->
@@ -211,6 +190,31 @@ function buildEarlierCourseOptions(currentTermIdx, currentRowId) {
 	return opts;
 }
 
+function populateRetakeSubmenu(submenu, currentRow, termIdx) {
+	submenu.innerHTML = "";
+	const items = buildEarlierCourseOptions(termIdx, currentRow.dataset.rowId);
+	if (items.length === 0) {
+		const empty = document.createElement("div");
+		empty.className = "px-3 py-2 text-sm text-gray-500";
+		empty.textContent = "No earlier courses";
+		submenu.appendChild(empty);
+	} else {
+		for (const { value, label } of items) {
+			const btn = document.createElement("button");
+			btn.className =
+				"px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm w-full text-left block whitespace-normal";
+			btn.textContent = label;
+			btn.addEventListener("click", () => {
+				setRetake(currentRow, value);
+				// Close menus
+				$$(".actionMenu").forEach((m) => m.classList.add("hidden"));
+				$$(".retakeSubmenu").forEach((m) => m.classList.add("hidden"));
+			});
+			submenu.appendChild(btn);
+		}
+	}
+}
+
 // Retake logic helpers
 function computeRetakeExclusionsMap() {
 	const excludeFromTerm = {}; // rowId -> startTermIdx
@@ -239,7 +243,6 @@ function computeRetakeExclusionsMap() {
 
 function setRetake(currentRow, targetRowId) {
 	currentRow.dataset.retakeOf = targetRowId;
-	$(".retakeToggle", currentRow).checked = true;
 	refreshRetakeMarks();
 	recalcAll();
 	saveState();
@@ -247,7 +250,6 @@ function setRetake(currentRow, targetRowId) {
 
 function clearRetake(currentRow) {
 	delete currentRow.dataset.retakeOf;
-	$(".retakeToggle", currentRow).checked = false;
 	refreshRetakeMarks();
 	recalcAll();
 	saveState();
@@ -473,14 +475,78 @@ termsEl.addEventListener("click", (e) => {
 	const target = e.target;
 	if (!(target instanceof HTMLElement)) return;
 
-	if (target.classList.contains("addCourse")) {
-		const card = target.closest(".term");
+	// Find the closest button for icon clicks
+	const button = target.closest("button");
+
+	if (button && button.classList.contains("addCourse")) {
+		const card = button.closest(".term");
 		addCourseRow(card);
 		recalcAll();
 	}
 
-	if (target.classList.contains("removeRow")) {
-		const row = target.closest("tr");
+	if (button && button.classList.contains("removeTerm")) {
+		const card = button.closest(".term");
+		card.remove();
+		// Deleting a term clears saved state entirely
+		localStorage.removeItem(STORAGE_KEY);
+		renumberTerms();
+		recalcAll();
+	}
+
+	if (button && button.classList.contains("actionBtn")) {
+		e.stopPropagation();
+		const menu = button.nextElementSibling;
+		const isHidden = menu.classList.contains("hidden");
+		// Hide all other menus
+		$$(".actionMenu").forEach((m) => m.classList.add("hidden"));
+		$$(".retakeSubmenu").forEach((m) => m.classList.add("hidden"));
+		if (isHidden) {
+			menu.classList.remove("hidden");
+			const rect = button.getBoundingClientRect();
+			menu.style.position = "fixed";
+			menu.style.top = rect.top + "px";
+			menu.style.left = rect.right + 2 + "px";
+			menu.style.zIndex = "50";
+		}
+	}
+
+	if (
+		button &&
+		(button.classList.contains("retakeOption") ||
+			target.closest(".retakeOption"))
+	) {
+		e.stopPropagation();
+		const retakeBtn = button.classList.contains("retakeOption")
+			? button
+			: target.closest(".retakeOption");
+		const actionMenu = retakeBtn.closest(".actionMenu");
+		const submenu = actionMenu.querySelector(".retakeSubmenu");
+		const row = retakeBtn.closest(".course-row");
+		const term = retakeBtn.closest(".term");
+
+		// Close all other submenus
+		$$(".retakeSubmenu").forEach((m) => {
+			if (m !== submenu) m.classList.add("hidden");
+		});
+
+		// Toggle current submenu
+		if (submenu.classList.contains("hidden")) {
+			populateRetakeSubmenu(submenu, row, Number(term.dataset.termIndex));
+			submenu.classList.remove("hidden");
+
+			// Position submenu next to the action menu (not the retake button)
+			const menuRect = actionMenu.getBoundingClientRect();
+			submenu.style.position = "fixed";
+			submenu.style.top = menuRect.top + "px";
+			submenu.style.left = menuRect.right + 2 + "px";
+			submenu.style.zIndex = "60";
+		} else {
+			submenu.classList.add("hidden");
+		}
+	}
+
+	if (button && button.classList.contains("removeOption")) {
+		const row = button.closest(".course-row");
 		const tb = row?.parentElement;
 		if (tb && tb.children.length > 1) {
 			row.remove();
@@ -497,21 +563,6 @@ termsEl.addEventListener("click", (e) => {
 		renumberTerms();
 		recalcAll();
 	}
-
-	if (target.classList.contains("removeTerm")) {
-		const card = target.closest(".term");
-		card.remove();
-		// Deleting a term clears saved state entirely
-		localStorage.removeItem(STORAGE_KEY);
-		renumberTerms();
-		recalcAll();
-	}
-
-	if (target.classList.contains("chooseRetake")) {
-		const row = target.closest(".course-row");
-		const term = target.closest(".term");
-		openRetakeModal(row, Number(term.dataset.termIndex));
-	}
 });
 
 // Inputs + select changes
@@ -519,18 +570,6 @@ termsEl.addEventListener("input", (e) => {
 	const el = e.target;
 	if (!(el instanceof HTMLElement)) return;
 	if (el.matches("input, select")) {
-		if (el.classList.contains("retakeToggle")) {
-			const row = el.closest(".course-row");
-			const btn = row.querySelector(".chooseRetake");
-			if (el.checked) {
-				btn.classList.remove("hidden");
-				const term = el.closest(".term");
-				openRetakeModal(row, Number(term.dataset.termIndex));
-			} else {
-				btn.classList.add("hidden");
-				clearRetake(row);
-			}
-		}
 		recalcAll();
 	}
 });
@@ -579,6 +618,17 @@ function boot() {
 		$$(".grade").forEach(makeGradeSelectOptions);
 		recalcAll();
 	}
+
+	// Close menus on click outside
+	document.addEventListener("click", (e) => {
+		if (
+			!e.target.closest(".actionMenu") &&
+			!e.target.classList.contains("actionBtn")
+		) {
+			$$(".actionMenu").forEach((m) => m.classList.add("hidden"));
+			$$(".retakeSubmenu").forEach((m) => m.classList.add("hidden"));
+		}
+	});
 }
 
 boot();

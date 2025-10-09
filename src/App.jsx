@@ -1,0 +1,225 @@
+import { useState, useEffect } from 'react';
+import Header from './components/Header';
+import TermCard from './components/TermCard';
+import TranscriptStats from './components/TranscriptStats';
+import { SCALE, fmt, computeCumMetrics, computeRetakeExclusionsMap } from './utils/calculations';
+
+const STORAGE_KEY = 'gpa_state_v3';
+
+function App() {
+  const [institution, setInstitution] = useState('BYUI');
+  const [transferEarned, setTransferEarned] = useState(0);
+  const [terms, setTerms] = useState([]);
+  const [nextRowId, setNextRowId] = useState(1);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        setInstitution(state.institution || 'BYUI');
+        setNextRowId(state.nextRowId || 1);
+        setTransferEarned(state.transferEarned || 0);
+        setTerms(state.terms || []);
+      } catch (e) {
+        console.error('Failed to restore state', e);
+        seedDefaultTerms();
+      }
+    } else {
+      seedDefaultTerms();
+    }
+  }, []);
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    if (terms.length > 0) {
+      const state = {
+        institution,
+        nextRowId,
+        transferEarned,
+        terms
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+  }, [institution, nextRowId, transferEarned, terms]);
+
+  const seedDefaultTerms = () => {
+    const defaultTerms = [];
+    for (let i = 1; i <= 3; i++) {
+      defaultTerms.push({
+        termIndex: i,
+        rows: [{
+          id: String(nextRowId + i - 1),
+          name: '',
+          units: 0,
+          grade: 'W',
+          retakeOf: null
+        }]
+      });
+    }
+    setTerms(defaultTerms);
+    setNextRowId(nextRowId + 3);
+  };
+
+  const addTerm = () => {
+    const newTerm = {
+      termIndex: terms.length + 1,
+      rows: [{
+        id: String(nextRowId),
+        name: '',
+        units: 0,
+        grade: 'W',
+        retakeOf: null
+      }]
+    };
+    setTerms([...terms, newTerm]);
+    setNextRowId(nextRowId + 1);
+  };
+
+  const removeTerm = (termIndex) => {
+    const newTerms = terms
+      .filter(t => t.termIndex !== termIndex)
+      .map((t, i) => ({ ...t, termIndex: i + 1 }));
+    setTerms(newTerms);
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
+  const addCourse = (termIndex) => {
+    const newTerms = terms.map(t => {
+      if (t.termIndex === termIndex) {
+        return {
+          ...t,
+          rows: [...t.rows, {
+            id: String(nextRowId),
+            name: '',
+            units: 0,
+            grade: 'W',
+            retakeOf: null
+          }]
+        };
+      }
+      return t;
+    });
+    setTerms(newTerms);
+    setNextRowId(nextRowId + 1);
+  };
+
+  const removeCourse = (termIndex, rowId) => {
+    const newTerms = terms.map(t => {
+      if (t.termIndex === termIndex) {
+        const newRows = t.rows.filter(r => r.id !== rowId);
+        if (newRows.length === 0) {
+          return {
+            ...t,
+            rows: [{
+              id: String(nextRowId),
+              name: '',
+              units: 0,
+              grade: 'W',
+              retakeOf: null
+            }]
+          };
+        }
+        return { ...t, rows: newRows };
+      }
+      return t;
+    });
+    setTerms(newTerms);
+    if (terms.find(t => t.termIndex === termIndex)?.rows.length === 0) {
+      setNextRowId(nextRowId + 1);
+    }
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
+  const updateCourse = (termIndex, rowId, field, value) => {
+    const newTerms = terms.map(t => {
+      if (t.termIndex === termIndex) {
+        return {
+          ...t,
+          rows: t.rows.map(r => r.id === rowId ? { ...r, [field]: value } : r)
+        };
+      }
+      return t;
+    });
+    setTerms(newTerms);
+  };
+
+  const setRetake = (termIndex, rowId, targetRowId) => {
+    updateCourse(termIndex, rowId, 'retakeOf', targetRowId);
+  };
+
+  const clearRetake = (rowId) => {
+    // Find which term contains this row
+    const term = terms.find(t => t.rows.some(r => r.id === rowId));
+    if (term) {
+      updateCourse(term.termIndex, rowId, 'retakeOf', null);
+    }
+  };
+
+  const clearAll = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setInstitution('BYUI');
+    setTransferEarned(0);
+    setNextRowId(1);
+    seedDefaultTerms();
+  };
+
+  // Calculate statistics
+  const excludeMap = computeRetakeExclusionsMap(terms);
+  const lastTermIndex = terms.length;
+  const instStats = computeCumMetrics(terms, lastTermIndex, excludeMap, institution);
+
+  return (
+    <div className="bg-gray-50 text-gray-900 min-h-screen antialiased">
+      <Header 
+        institution={institution}
+        setInstitution={setInstitution}
+        clearAll={clearAll}
+      />
+      
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pb-24">
+        {/* Terms */}
+        <section className="space-y-8">
+          {terms.map(term => (
+            <TermCard
+              key={term.termIndex}
+              term={term}
+              terms={terms}
+              institution={institution}
+              excludeMap={excludeMap}
+              addCourse={addCourse}
+              removeTerm={removeTerm}
+              removeCourse={removeCourse}
+              updateCourse={updateCourse}
+              setRetake={setRetake}
+              clearRetake={clearRetake}
+            />
+          ))}
+        </section>
+
+        {/* Transcript Statistics */}
+        <TranscriptStats
+          instStats={instStats}
+          transferEarned={transferEarned}
+          setTransferEarned={setTransferEarned}
+          institution={institution}
+        />
+
+        {/* Add Term Button */}
+        <div className="sticky bottom-4 mt-10 flex justify-center">
+          <button
+            onClick={addTerm}
+            className="p-3 rounded-2xl bg-green-600 hover:bg-green-700 text-white shadow-lg"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+          </button>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default App;
