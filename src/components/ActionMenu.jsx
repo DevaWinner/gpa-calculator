@@ -11,26 +11,54 @@ function ActionMenu({
 }) {
 	const [showRetakeSubmenu, setShowRetakeSubmenu] = useState(false);
 	const [selectedTerm, setSelectedTerm] = useState(null);
-	const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+	const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 	const [termSubmenuPosition, setTermSubmenuPosition] = useState({
 		top: 0,
-		right: 0,
+		left: 0,
 	});
 	const [courseSubmenuPosition, setCourseSubmenuPosition] = useState({
 		top: 0,
-		right: 0,
+		left: 0,
 	});
 	const menuRef = useRef(null);
 	const termSubmenuRef = useRef(null);
 	const courseSubmenuRef = useRef(null);
 
+	// Find the retaken course information
+	const getRetakenCourseInfo = () => {
+		if (!row.retakeOf) return null;
+
+		// Search through all terms to find the course being retaken
+		for (const termGroup of earlierCoursesByTerm) {
+			const course = termGroup.courses.find((c) => c.rowId === row.retakeOf);
+			if (course) {
+				return {
+					name: course.label || "(Unnamed)",
+					units: course.units,
+					grade: course.grade,
+					term: termGroup.termIndex,
+				};
+			}
+		}
+		return null;
+	};
+
+	const retakenCourse = getRetakenCourseInfo();
+
 	// Calculate menu position
 	useEffect(() => {
 		if (menuRef.current) {
 			const rect = menuRef.current.parentElement.getBoundingClientRect();
+			const menuWidth = 140; // min-width of menu
+			// Position menu to align with the button, but keep it on screen
+			let left = rect.right - menuWidth;
+			// If menu would go off screen to the right, position it differently
+			if (left + menuWidth > window.innerWidth) {
+				left = window.innerWidth - menuWidth - 8;
+			}
 			setMenuPosition({
 				top: rect.bottom + 4,
-				right: window.innerWidth - rect.right,
+				left: left,
 			});
 		}
 	}, []);
@@ -39,9 +67,16 @@ function ActionMenu({
 	useEffect(() => {
 		if (showRetakeSubmenu && menuRef.current) {
 			const rect = menuRef.current.getBoundingClientRect();
+			const submenuWidth = 160; // min-width of term submenu
+			// Position term submenu to the right of main menu
+			let left = rect.right + 8;
+			// If submenu would go off screen, position it to the left instead
+			if (left + submenuWidth > window.innerWidth) {
+				left = rect.left - submenuWidth - 8;
+			}
 			setTermSubmenuPosition({
 				top: rect.top,
-				right: window.innerWidth - rect.left + 8,
+				left: left,
 			});
 		}
 	}, [showRetakeSubmenu]);
@@ -51,9 +86,16 @@ function ActionMenu({
 		if (selectedTerm && termSubmenuRef.current) {
 			const rect = termSubmenuRef.current.getBoundingClientRect();
 			const buttonRect = document.activeElement?.getBoundingClientRect();
+			const submenuWidth = 220; // min-width of course submenu
+			// Position course submenu to the right of term submenu
+			let left = rect.right + 8;
+			// If submenu would go off screen, position it to the left instead
+			if (left + submenuWidth > window.innerWidth) {
+				left = rect.left - submenuWidth - 8;
+			}
 			setCourseSubmenuPosition({
 				top: buttonRect?.top || rect.top,
-				right: window.innerWidth - rect.left + 8,
+				left: left,
 			});
 		}
 	}, [selectedTerm]);
@@ -100,9 +142,10 @@ function ActionMenu({
 		e.stopPropagation();
 		// Calculate position for course submenu based on the clicked term button
 		const rect = e.currentTarget.getBoundingClientRect();
+		const parentRect = termSubmenuRef.current?.getBoundingClientRect();
 		setCourseSubmenuPosition({
 			top: rect.top,
-			right: window.innerWidth - rect.left + 8,
+			left: parentRect ? parentRect.right + 8 : rect.right + 8,
 		});
 		setSelectedTerm(termGroup);
 	};
@@ -116,7 +159,7 @@ function ActionMenu({
 				style={{
 					animation: "menuSlideIn 0.15s ease-out",
 					top: `${menuPosition.top}px`,
-					right: `${menuPosition.right}px`,
+					left: `${menuPosition.left}px`,
 				}}
 			>
 				<button
@@ -158,7 +201,7 @@ function ActionMenu({
 					style={{
 						animation: "menuSlideIn 0.15s ease-out",
 						top: `${termSubmenuPosition.top}px`,
-						right: `${termSubmenuPosition.right}px`,
+						left: `${termSubmenuPosition.left}px`,
 					}}
 				>
 					{row.retakeOf ? (
@@ -168,7 +211,14 @@ function ActionMenu({
 						>
 							<div className="font-medium">Clear Retake Link</div>
 							<div className="text-xs text-gray-500 mt-0.5">
-								Currently retaking: {row.retakeOf}
+								{retakenCourse ? (
+									<>
+										<span className="font-medium">{retakenCourse.name}</span>{" "}
+										(Term {retakenCourse.term})
+									</>
+								) : (
+									row.retakeOf
+								)}
 							</div>
 						</button>
 					) : null}
@@ -218,7 +268,7 @@ function ActionMenu({
 					style={{
 						animation: "menuSlideIn 0.15s ease-out",
 						top: `${courseSubmenuPosition.top}px`,
-						right: `${courseSubmenuPosition.right}px`,
+						left: `${courseSubmenuPosition.left}px`,
 					}}
 				>
 					<div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-200">

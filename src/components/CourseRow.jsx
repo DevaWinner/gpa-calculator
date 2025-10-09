@@ -26,6 +26,11 @@ function CourseRow({
 
 	const rowClasses = row.exclusionStart ? "excluded-row bg-gray-100" : "";
 
+	// Check if this row is involved in a retake relationship
+	const isRetaking = !!row.retakeOf; // This row is retaking another course
+	const isBeingRetaken = !!row.exclusionStart; // This row is being retaken by another course
+	const hasRetakeRelationship = isRetaking || isBeingRetaken;
+
 	// Base cell classes
 	const baseCellClass = "p-2";
 	const inputClass =
@@ -36,13 +41,27 @@ function CourseRow({
 		<tr className={`course-row ${rowClasses} relative`}>
 			{/* Course Name */}
 			<td className={baseCellClass}>
-				<input
-					type="text"
-					value={row.name || ""}
-					onChange={(e) => handleUpdate("name", e.target.value)}
-					className={inputClass}
-					placeholder="Course name"
-				/>
+				<div className="flex items-center gap-1">
+					<input
+						type="text"
+						value={row.name || ""}
+						onChange={(e) => handleUpdate("name", e.target.value)}
+						className={inputClass}
+						placeholder="Course name"
+					/>
+					{hasRetakeRelationship && (
+						<span
+							className="text-red-500 font-bold text-lg flex-shrink-0"
+							title={
+								isRetaking
+									? "Retaking an earlier course"
+									: "Being retaken by a later course"
+							}
+						>
+							** 
+						</span>
+					)}
+				</div>
 			</td>
 
 			{/* Units */}
