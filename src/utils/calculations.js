@@ -34,14 +34,24 @@ export const SCALE = {
 	},
 };
 
-export const decimalsFor = (institution) => (institution === "Ensign" ? 3 : 2);
+// Helper to eliminate floating point errors - round to 6 decimal places
+const cleanFloat = (n) => {
+	return Math.round(n * 1000000) / 1000000;
+};
 
-export const fmt = (n, institution = "BYUI") => {
-	const d = decimalsFor(institution);
-	if (!Number.isFinite(n)) return (0).toFixed(d);
-	const factor = Math.pow(10, d);
-	const truncated = Math.floor(n * factor) / factor;
-	return truncated.toFixed(d);
+// Format values with appropriate decimal places
+export const fmt = (n, valueType = "other") => {
+	const decimals = valueType === "gpa" ? 3 : 2;
+	if (!Number.isFinite(n)) return (0).toFixed(decimals);
+
+	// Clean the float first to eliminate JavaScript floating point errors
+	const cleaned = cleanFloat(n);
+
+	// Truncate by multiplying, flooring, then dividing
+	const factor = Math.pow(10, decimals);
+	const truncated = Math.floor(cleaned * factor) / factor;
+
+	return truncated.toFixed(decimals);
 };
 
 export const computeRetakeExclusionsMap = (terms) => {
@@ -74,7 +84,7 @@ export const computeRetakeExclusionsMap = (terms) => {
 	return excludeFromTerm;
 };
 
-export const termCalc = (term, excludeMap, institution) => {
+export const termCalc = (term, excludeMap) => {
 	const map = SCALE.points;
 	let attempted = 0,
 		earned = 0,
@@ -88,45 +98,38 @@ export const termCalc = (term, excludeMap, institution) => {
 		const gVal = gRaw === null ? null : gRaw ?? 0;
 
 		// Always count attempted (even W)
-		attempted += units;
+		attempted = cleanFloat(attempted + units);
 
-		if (gVal === null) w_credits += units; // W credits
+		if (gVal === null) w_credits = cleanFloat(w_credits + units);
 
-		// UI cells
-		const q = gVal === null ? 0 : units * gVal;
+		// CRITICAL FIX: Clean immediately after multiplication
+		const q = gVal === null ? 0 : cleanFloat(units * gVal);
 
 		// Earned excludes W and any non-passing (gVal <= 0)
-		if (gVal > 0) earned += units;
-		qp += q;
+		if (gVal > 0) earned = cleanFloat(earned + units);
+		qp = cleanFloat(qp + q);
 
 		return {
 			...r,
 			gVal,
 			q,
-			gradeVal: gVal === null ? "*" : fmt(gVal, institution),
-			quality: fmt(q, institution),
 			exclusionStart: excludeMap[r.id],
 		};
 	});
 
-	const denom = attempted - w_credits; // GPA denominator excludes W credits
-	const gpa = denom > 0 ? qp / denom : 0;
+	const denom = cleanFloat(attempted - w_credits);
+	const gpa = denom > 0 ? cleanFloat(qp / denom) : 0;
 
 	return {
 		rows: rowsWithCache,
-		attempted,
-		earned,
-		qp,
-		gpa,
+		attempted: cleanFloat(attempted),
+		earned: cleanFloat(earned),
+		qp: cleanFloat(qp),
+		gpa: cleanFloat(gpa),
 	};
 };
 
-export const computeCumMetrics = (
-	terms,
-	upToTermIdx,
-	excludeMap,
-	institution
-) => {
+export const computeCumMetrics = (terms, upToTermIdx, excludeMap) => {
 	let attempted = 0,
 		earned = 0,
 		qp = 0,
@@ -135,7 +138,7 @@ export const computeCumMetrics = (
 	for (const t of terms) {
 		if (t.termIndex > upToTermIdx) break;
 
-		const termData = termCalc(t, excludeMap, institution);
+		const termData = termCalc(t, excludeMap);
 
 		for (const r of termData.rows) {
 			const excludedNow =
@@ -144,17 +147,22 @@ export const computeCumMetrics = (
 
 			const units = parseFloat(r.units) || 0;
 			// Attempted always includes, even if gVal is null (W)
-			attempted += units;
-			if (r.gVal === null) w_credits += units; // W credits
-			if (r.gVal > 0) earned += units;
-			if (r.gVal !== null) qp += r.q; // W contributes 0 QP already
+			attempted = cleanFloat(attempted + units);
+			if (r.gVal === null) w_credits = cleanFloat(w_credits + units); // W credits
+			if (r.gVal > 0) earned = cleanFloat(earned + units);
+			if (r.gVal !== null) qp = cleanFloat(qp + r.q); // W contributes 0 QP already
 		}
 	}
 
-	const denom = attempted - w_credits; // GPA denominator excludes W credits
-	const gpa = denom > 0 ? qp / denom : 0;
+	const denom = cleanFloat(attempted - w_credits); // GPA denominator excludes W credits
+	const gpa = denom > 0 ? cleanFloat(qp / denom) : 0;
 
-	return { attempted, earned, qp, gpa };
+	return {
+		attempted: cleanFloat(attempted),
+		earned: cleanFloat(earned),
+		qp: cleanFloat(qp),
+		gpa: cleanFloat(gpa),
+	};
 };
 
 export const buildEarlierCourseOptions = (
@@ -211,6 +219,7 @@ export const buildEarlierCoursesByTerm = (
 		if (courses.length > 0) {
 			termGroups.push({
 				termIndex: tIdx,
+				termName: t.name || `Term ${tIdx}`,
 				courses,
 			});
 		}

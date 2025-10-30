@@ -5,34 +5,35 @@ import { termCalc, computeCumMetrics, fmt } from "../utils/calculations";
 function TermCard({
 	term,
 	terms,
-	institution,
 	excludeMap,
 	addCourse,
 	removeTerm,
 	removeCourse,
 	updateCourse,
+	updateTermName,
 	setRetake,
 	clearRetake,
 }) {
-	const termData = termCalc(term, excludeMap, institution);
-	const cumData = computeCumMetrics(
-		terms,
-		term.termIndex,
-		excludeMap,
-		institution
-	);
+	const termData = termCalc(term, excludeMap);
+	const cumData = computeCumMetrics(terms, term.termIndex, excludeMap);
 
 	return (
 		<div className="term bg-white rounded-2xl shadow-sm ring-1 ring-gray-300 overflow-hidden">
 			<div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
 				<div className="flex items-baseline gap-3">
-					<h2 className="text-lg font-bold text-gray-800">
-						Term <span className="term-number">{term.termIndex}</span>
+					<h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+						<input
+							type="text"
+							value={term.name || `Term ${term.termIndex}`}
+							onChange={(e) => updateTermName(term.termIndex, e.target.value)}
+							className="bg-transparent border-none outline-none focus:bg-white focus:border focus:border-gray-300 focus:rounded px-2 py-1 min-w-[100px]"
+							placeholder={`Term ${term.termIndex}`}
+						/>
 					</h2>
 					<span className="text-xs text-gray-700">
 						Term GPA:{" "}
 						<strong className="text-gray-900">
-							{fmt(termData.gpa, institution)}
+							{fmt(termData.gpa, "gpa")}
 						</strong>
 					</span>
 				</div>
@@ -89,7 +90,6 @@ function TermCard({
 								row={row}
 								term={term}
 								terms={terms}
-								institution={institution}
 								removeCourse={removeCourse}
 								updateCourse={updateCourse}
 								setRetake={setRetake}
@@ -135,31 +135,31 @@ function TermCard({
 				{/* Term GPA Row */}
 				<div className="grid grid-cols-12 items-center mt-1">
 					<div className="col-span-3 font-semibold text-gray-800">
-						Term GPA: <span>{fmt(termData.gpa, institution)}</span>
+						Term GPA: <span>{fmt(termData.gpa, "gpa")}</span>
 					</div>
 					<div className="col-span-3 text-center">
-						{fmt(termData.attempted, institution)}
+						{fmt(termData.attempted, "other")}
 					</div>
 					<div className="col-span-3 text-center">
-						{fmt(termData.earned, institution)}
+						{fmt(termData.earned, "other")}
 					</div>
 					<div className="col-span-3 text-center">
-						{fmt(termData.qp, institution)}
+						{fmt(termData.qp, "other")}
 					</div>
 				</div>
 				{/* Cum GPA Row */}
 				<div className="grid grid-cols-12 items-center mt-3">
 					<div className="col-span-3 font-semibold text-gray-800">
-						Cum GPA: <span>{fmt(cumData.gpa, institution)}</span>
+						Cum GPA: <span>{fmt(cumData.gpa, "gpa")}</span>
 					</div>
 					<div className="col-span-3 text-center">
-						{fmt(cumData.attempted, institution)}
+						{fmt(cumData.attempted, "other")}
 					</div>
 					<div className="col-span-3 text-center">
-						{fmt(cumData.earned, institution)}
+						{fmt(cumData.earned, "other")}
 					</div>
 					<div className="col-span-3 text-center">
-						{fmt(cumData.qp, institution)}
+						{fmt(cumData.qp, "other")}
 					</div>
 				</div>
 			</div>

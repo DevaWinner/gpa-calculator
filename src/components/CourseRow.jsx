@@ -6,7 +6,6 @@ function CourseRow({
 	row,
 	term,
 	terms,
-	institution,
 	removeCourse,
 	updateCourse,
 	setRetake,
@@ -15,6 +14,10 @@ function CourseRow({
 	const [showMenu, setShowMenu] = useState(false);
 
 	const handleUpdate = (field, value) => {
+		// Convert course names to uppercase
+		if (field === "name") {
+			value = value.toUpperCase();
+		}
 		updateCourse(term.termIndex, row.id, field, value);
 	};
 
@@ -48,6 +51,7 @@ function CourseRow({
 						onChange={(e) => handleUpdate("name", e.target.value)}
 						className={inputClass}
 						placeholder="Course name"
+						style={{ textTransform: "uppercase" }}
 					/>
 					{hasRetakeRelationship && (
 						<span
@@ -58,7 +62,7 @@ function CourseRow({
 									: "Being retaken by a later course"
 							}
 						>
-							** 
+							**
 						</span>
 					)}
 				</div>
@@ -94,13 +98,13 @@ function CourseRow({
 			{/* Grade Value */}
 			<td className={`${baseCellClass} ${displayCellClass}`}>
 				{row.gVal !== null && row.gVal !== undefined
-					? fmt(row.gVal, institution)
+					? fmt(row.gVal, "other")
 					: "—"}
 			</td>
 
-			{/* Quality Points */}
+			{/* Quality Points - ensure we're formatting the raw q value */}
 			<td className={`${baseCellClass} ${displayCellClass}`}>
-				{row.q !== null && row.q !== undefined ? fmt(row.q, institution) : "—"}
+				{row.q !== null && row.q !== undefined ? fmt(row.q, "other") : "—"}
 			</td>
 
 			{/* Actions */}
