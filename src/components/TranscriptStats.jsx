@@ -1,11 +1,6 @@
 import { fmt } from "../utils/calculations";
 
-function TranscriptStats({
-	instStats,
-	transferEarned,
-	setTransferEarned,
-	institution,
-}) {
+function TranscriptStats({ instStats, transferEarned }) {
 	const overallEarned =
 		instStats.earned + (Number.isFinite(transferEarned) ? transferEarned : 0);
 
@@ -33,18 +28,8 @@ function TranscriptStats({
 					<div className="col-span-2 px-4 py-2 text-center text-gray-500">
 						— — —
 					</div>
-					<div className="col-span-2 px-4 py-2 text-center">
-						<span
-							contentEditable="true"
-							suppressContentEditableWarning
-							onBlur={(e) => {
-								const val = parseFloat(e.currentTarget.textContent.trim());
-								setTransferEarned(Number.isFinite(val) ? Math.max(0, val) : 0);
-							}}
-							className="inline-block min-w-[3ch] text-gray-900 px-2 py-1 rounded-md border border-gray-200 focus-ring"
-						>
-							{transferEarned}
-						</span>
+					<div className="col-span-2 px-4 py-2 text-center font-semibold text-gray-900">
+						{fmt(transferEarned, "other")}
 					</div>
 					<div className="col-span-3 px-4 py-2 text-center text-gray-500">
 						{fmt(0, "other")}

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Header from "./components/Header";
 import TermCard from "./components/TermCard";
 import TranscriptStats from "./components/TranscriptStats";
+import TransferCredits from "./components/TransferCredits";
 import {
 	SCALE,
 	fmt,
@@ -13,6 +14,7 @@ const STORAGE_KEY = "gpa_state_v3";
 
 function App() {
 	const [transferEarned, setTransferEarned] = useState(0);
+	const [transfers, setTransfers] = useState([]);
 	const [terms, setTerms] = useState([]);
 	const [nextRowId, setNextRowId] = useState(1);
 
@@ -24,6 +26,7 @@ function App() {
 				const state = JSON.parse(saved);
 				setNextRowId(state.nextRowId || 1);
 				setTransferEarned(state.transferEarned || 0);
+				setTransfers(state.transfers || []);
 				setTerms(state.terms || []);
 			} catch (e) {
 				console.error("Failed to restore state", e);
@@ -40,11 +43,12 @@ function App() {
 			const state = {
 				nextRowId,
 				transferEarned,
+				transfers,
 				terms,
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 		}
-	}, [nextRowId, transferEarned, terms]);
+	}, [nextRowId, transferEarned, transfers, terms]);
 
 	const seedDefaultTerms = () => {
 		const defaultTerms = [];
@@ -200,6 +204,7 @@ function App() {
 	const clearAll = () => {
 		localStorage.removeItem(STORAGE_KEY);
 		setTransferEarned(0);
+		setTransfers([]);
 		setNextRowId(1);
 		seedDefaultTerms();
 	};
@@ -209,11 +214,23 @@ function App() {
 	const lastTermIndex = terms.length;
 	const instStats = computeCumMetrics(terms, lastTermIndex, excludeMap);
 
+	// Update transferEarned when transfers change
+	useEffect(() => {
+		const total = transfers.reduce(
+			(sum, t) => sum + (parseFloat(t.credits) || 0),
+			0
+		);
+		setTransferEarned(total);
+	}, [transfers]);
+
 	return (
 		<div className="bg-gray-50 text-gray-900 min-h-screen antialiased">
 			<Header clearAll={clearAll} />
 
 			<main className="max-w-6xl mx-auto px-4 sm:px-6 pb-24">
+				{/* Transfer Credits Section */}
+				<TransferCredits transfers={transfers} setTransfers={setTransfers} />
+
 				{/* Terms */}
 				<section className="space-y-8">
 					{terms.map((term) => (
