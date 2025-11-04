@@ -4,56 +4,57 @@
 
 /* Animations */
 @keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
 }
 
 @keyframes menuSlideIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+	from {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
 }
 
 /* Apply animations */
 .term {
-  animation: slideIn 0.3s ease-out;
+	animation: slideIn 0.3s ease-out;
 }
 
 .course-row {
-  animation: fadeIn 0.2s ease-out;
+	animation: fadeIn 0.2s ease-out;
 }
 
 /* Pointer events for icon buttons */
 button svg,
 button svg * {
-  pointer-events: none;
+	pointer-events: none;
 }
 
-/* Excluded row styling */
+/* Excluded row styling - courses excluded from cumulative but included in term */
 .excluded-row {
-  opacity: 0.6;
+	opacity: 0.8;
+	border-left: 3px solid #f59e0b;
 }
 
 .excluded-row input {
-  background-color: #f3f4f6;
+	background-color: #fffbeb;
 }

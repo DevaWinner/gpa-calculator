@@ -55,36 +55,114 @@ export const fmt = (n, valueType = "other") => {
 };
 
 export const computeRetakeExclusionsMap = (terms) => {
-	const excludeFromTerm = {}; // rowId -> startTermIdx
+	const retakeGroups = {}; // Map courseId -> array of all instances
+	const cumulativeExclusions = {}; // rowId -> startingFromTermIndex
 
+	// First, identify all retake relationships and group them
 	for (const t of terms) {
-		const termIdx = t.termIndex;
 		for (const r of t.rows) {
-			const target = r.retakeOf;
-			if (!target) continue;
-
-			// Find the target row
-			let targetTermIdx = null;
-			for (const term of terms) {
-				if (term.rows.find((row) => row.id === target)) {
-					targetTermIdx = term.termIndex;
-					break;
+			if (r.retakeOf) {
+				// Find the original course
+				let originalCourse = null;
+				let originalTermIndex = null;
+				for (const term of terms) {
+					const found = term.rows.find((row) => row.id === r.retakeOf);
+					if (found) {
+						originalCourse = found;
+						originalTermIndex = term.termIndex;
+						break;
+					}
 				}
-			}
 
-			if (targetTermIdx && targetTermIdx < termIdx) {
-				excludeFromTerm[target] = Math.min(
-					excludeFromTerm[target] ?? termIdx,
-					termIdx
-				);
+				if (originalCourse && originalTermIndex) {
+					// Use the original course ID as the group identifier
+					const groupId = r.retakeOf;
+
+					if (!retakeGroups[groupId]) {
+						retakeGroups[groupId] = [];
+					}
+
+					// Only add the original course once to the group
+					if (
+						!retakeGroups[groupId].some(
+							(instance) => instance.rowId === r.retakeOf
+						)
+					) {
+						retakeGroups[groupId].push({
+							rowId: r.retakeOf,
+							termIndex: originalTermIndex,
+							grade: originalCourse.grade,
+							units: parseFloat(originalCourse.units) || 0,
+						});
+					}
+
+					// Add the current retake instance
+					retakeGroups[groupId].push({
+						rowId: r.id,
+						termIndex: t.termIndex,
+						grade: r.grade,
+						units: parseFloat(r.units) || 0,
+					});
+				}
 			}
 		}
 	}
 
-	return excludeFromTerm;
+	// Debug log to see what retake groups we found
+	console.log("Retake groups:", retakeGroups);
+
+	// Now determine exclusions for each group
+	for (const groupId in retakeGroups) {
+		const instances = retakeGroups[groupId];
+		if (instances.length > 1) {
+			// Sort instances by term index to process chronologically
+			instances.sort((a, b) => a.termIndex - b.termIndex);
+
+			// Find the retake term (when the second instance occurs)
+			const retakeTermIndex = instances[1].termIndex;
+
+			// Determine which instance has the best grade
+			let bestInstance = null;
+			let bestGradeValue = -1;
+
+			for (const instance of instances) {
+				const gradeValue = SCALE.points[instance.grade];
+				// Handle null grades (W) - they should not be considered "best"
+				if (gradeValue !== null && gradeValue !== undefined) {
+					if (bestInstance === null || gradeValue > bestGradeValue) {
+						bestGradeValue = gradeValue;
+						bestInstance = instance;
+					}
+				}
+			}
+
+			console.log(
+				`Group ${groupId}: best instance is`,
+				bestInstance,
+				"from term",
+				bestInstance?.termIndex
+			);
+
+			// If we found a best instance, exclude all others from cumulative starting from retake term
+			if (bestInstance) {
+				for (const instance of instances) {
+					if (instance.rowId !== bestInstance.rowId) {
+						cumulativeExclusions[instance.rowId] = retakeTermIndex;
+						console.log(
+							`Excluding row ${instance.rowId} from cumulative starting from term ${retakeTermIndex}`
+						);
+					}
+				}
+			}
+		}
+	}
+
+	console.log("Cumulative exclusions:", cumulativeExclusions);
+
+	return { cumulativeExclusions, retakeGroups };
 };
 
-export const termCalc = (term, excludeMap) => {
+export const termCalc = (term, excludeInfo) => {
 	const map = SCALE.points;
 	let attempted = 0,
 		earned = 0,
@@ -97,28 +175,36 @@ export const termCalc = (term, excludeMap) => {
 		const gRaw = map[grade];
 		const gVal = gRaw === null ? null : gRaw ?? 0;
 
-		// Always count attempted (even W)
+		// ALL courses count for TERM calculations (no exclusions)
 		attempted = cleanFloat(attempted + units);
 
 		if (gVal === null) w_credits = cleanFloat(w_credits + units);
 
-		// CRITICAL FIX: Clean immediately after multiplication
+		// For TERM calculations, include ALL courses
 		const q = gVal === null ? 0 : cleanFloat(units * gVal);
-
-		// Earned excludes W and any non-passing (gVal <= 0)
-		if (gVal > 0) earned = cleanFloat(earned + units);
 		qp = cleanFloat(qp + q);
+
+		// Earned credits for TERM calculations:
+		// - Include passing grades (> 0)
+		// - Exclude F (0.0), UW (0.0), and W (null)
+		if (gVal > 0) earned = cleanFloat(earned + units);
+
+		// Mark exclusion info for cumulative calculations
+		const excludedFromCumStartingTerm =
+			excludeInfo.cumulativeExclusions?.[r.id];
 
 		return {
 			...r,
 			gVal,
 			q,
-			exclusionStart: excludeMap[r.id],
+			excludedFromCumStartingTerm,
 		};
 	});
 
-	const denom = cleanFloat(attempted - w_credits);
-	const gpa = denom > 0 ? cleanFloat(qp / denom) : 0;
+	// GPA calculation includes F grades (0.0 grade points)
+	// GPA denominator = attempted - W credits (F grades ARE included in denominator)
+	const gpaDenom = cleanFloat(attempted - w_credits);
+	const gpa = gpaDenom > 0 ? cleanFloat(qp / gpaDenom) : 0;
 
 	return {
 		rows: rowsWithCache,
@@ -129,39 +215,60 @@ export const termCalc = (term, excludeMap) => {
 	};
 };
 
-export const computeCumMetrics = (terms, upToTermIdx, excludeMap) => {
+export const computeCumMetrics = (terms, upToTermIdx, excludeInfo) => {
 	let attempted = 0,
 		earned = 0,
 		qp = 0,
-		w_credits = 0;
+		w_credits = 0,
+		excluded_credits = 0; // Track credits excluded from GPA calculation
 
 	for (const t of terms) {
 		if (t.termIndex > upToTermIdx) break;
 
-		const termData = termCalc(t, excludeMap);
+		const termData = termCalc(t, excludeInfo);
 
 		for (const r of termData.rows) {
-			const excludedNow =
-				r.exclusionStart !== undefined && upToTermIdx >= r.exclusionStart;
-			if (excludedNow) continue;
-
 			const units = parseFloat(r.units) || 0;
-			// Attempted always includes, even if gVal is null (W)
+
+			// ALL instances count as attempted
 			attempted = cleanFloat(attempted + units);
-			if (r.gVal === null) w_credits = cleanFloat(w_credits + units); // W credits
-			if (r.gVal > 0) earned = cleanFloat(earned + units);
-			if (r.gVal !== null) qp = cleanFloat(qp + r.q); // W contributes 0 QP already
+			if (r.gVal === null) w_credits = cleanFloat(w_credits + units);
+
+			// Check if this course should be excluded from cumulative calculation
+			const excludeStartTerm = r.excludedFromCumStartingTerm;
+			const shouldExcludeFromCum =
+				excludeStartTerm !== undefined && upToTermIdx >= excludeStartTerm;
+
+			if (shouldExcludeFromCum) {
+				// Track excluded credits (these don't count in GPA denominator)
+				excluded_credits = cleanFloat(excluded_credits + units);
+			} else {
+				// Only include in cumulative earned credits and QP if NOT excluded
+				if (r.gVal > 0) earned = cleanFloat(earned + units);
+				if (r.gVal !== null) qp = cleanFloat(qp + r.q);
+			}
 		}
 	}
 
-	const denom = cleanFloat(attempted - w_credits); // GPA denominator excludes W credits
-	const gpa = denom > 0 ? cleanFloat(qp / denom) : 0;
+	// GPA denominator = attempted - W credits - excluded retake credits
+	const gpaDenom = cleanFloat(attempted - w_credits - excluded_credits);
+	const gpa = gpaDenom > 0 ? cleanFloat(qp / gpaDenom) : 0;
+
+	console.log("Cumulative calculation result:", {
+		attempted,
+		earned,
+		qp,
+		w_credits,
+		excluded_credits,
+		gpaDenom,
+		gpa,
+	});
 
 	return {
-		attempted: cleanFloat(attempted),
-		earned: cleanFloat(earned),
-		qp: cleanFloat(qp),
-		gpa: cleanFloat(gpa),
+		attempted: cleanFloat(attempted), // All courses count as attempted
+		earned: cleanFloat(earned), // Only best instances count as earned
+		qp: cleanFloat(qp), // Only best instances contribute QP
+		gpa: cleanFloat(gpa), // GPA = QP / (attempted - W credits - excluded credits)
 	};
 };
 

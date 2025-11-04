@@ -27,11 +27,18 @@ function CourseRow({
 		row.id
 	);
 
-	const rowClasses = row.exclusionStart ? "excluded-row bg-gray-100" : "";
+	// Determine visual styling based on exclusion status
+	const isExcludedFromCurrentCum =
+		row.excludedFromCumStartingTerm !== undefined &&
+		term.termIndex >= row.excludedFromCumStartingTerm;
+
+	const rowClasses = isExcludedFromCurrentCum
+		? "excluded-row bg-yellow-50"
+		: "";
 
 	// Check if this row is involved in a retake relationship
-	const isRetaking = !!row.retakeOf; // This row is retaking another course
-	const isBeingRetaken = !!row.exclusionStart; // This row is being retaken by another course
+	const isRetaking = !!row.retakeOf;
+	const isBeingRetaken = !!row.excludedFromCumStartingTerm;
 	const hasRetakeRelationship = isRetaking || isBeingRetaken;
 
 	// Base cell classes
@@ -55,11 +62,13 @@ function CourseRow({
 					/>
 					{hasRetakeRelationship && (
 						<span
-							className="text-red-500 font-bold text-lg flex-shrink-0"
+							className="text-orange-500 font-bold text-lg flex-shrink-0"
 							title={
 								isRetaking
 									? "Retaking an earlier course"
-									: "Being retaken by a later course"
+									: isExcludedFromCurrentCum
+									? "Excluded from cumulative GPA from this term forward"
+									: "Part of a retake relationship"
 							}
 						>
 							**
@@ -102,9 +111,16 @@ function CourseRow({
 					: "—"}
 			</td>
 
-			{/* Quality Points - ensure we're formatting the raw q value */}
-			<td className={`${baseCellClass} ${displayCellClass}`}>
+			{/* Quality Points */}
+			<td
+				className={`${baseCellClass} ${displayCellClass} ${
+					isExcludedFromCurrentCum ? "text-orange-500" : ""
+				}`}
+			>
 				{row.q !== null && row.q !== undefined ? fmt(row.q, "other") : "—"}
+				{isExcludedFromCurrentCum && (
+					<span className="text-xs text-orange-600 block">(Term only)</span>
+				)}
 			</td>
 
 			{/* Actions */}
