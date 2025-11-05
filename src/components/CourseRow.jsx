@@ -39,7 +39,8 @@ function CourseRow({
 	// Check if this row is involved in a retake relationship
 	const isRetaking = !!row.retakeOf;
 	const isBeingRetaken = !!row.excludedFromCumStartingTerm;
-	const hasRetakeRelationship = isRetaking || isBeingRetaken;
+	const hasRetakeRelationship =
+		isRetaking || isBeingRetaken || row.inRetakeChain;
 
 	// Base cell classes
 	const baseCellClass = "p-2";

@@ -1,4 +1,6 @@
 // Fixed 4.0 scale with +/- ; W excluded from GPA math; UW = 0
+import { debugLog } from "./debug";
+
 export const SCALE = {
 	letters: [
 		"A",
@@ -44,72 +46,78 @@ export const fmt = (n, valueType = "other") => {
 	const decimals = valueType === "gpa" ? 3 : 2;
 	if (!Number.isFinite(n)) return (0).toFixed(decimals);
 
-	// Clean the float first to eliminate JavaScript floating point errors
-	const cleaned = cleanFloat(n);
-
-	// Truncate by multiplying, flooring, then dividing
 	const factor = Math.pow(10, decimals);
-	const truncated = Math.floor(cleaned * factor) / factor;
 
-	return truncated.toFixed(decimals);
+	// For GPA: truncate (floor)
+	// For other values (quality points, credits): round
+	const processed =
+		valueType === "gpa"
+			? Math.floor(n * factor) / factor
+			: Math.round(n * factor) / factor;
+
+	return processed.toFixed(decimals);
 };
 
 export const computeRetakeExclusionsMap = (terms) => {
-	const retakeGroups = {}; // Map courseId -> array of all instances
+	const retakeGroups = {}; // Map rootCourseId -> array of all instances
 	const cumulativeExclusions = {}; // rowId -> startingFromTermIndex
+	const rowToGroupMap = {}; // Map rowId -> rootCourseId (to find group for any row)
+	const retakeChainInfo = {}; // Map rowId -> { inRetakeChain: true, bestRowId, excludeFromTerm }
 
-	// First, identify all retake relationships and group them
+	// First pass: Build retake chains by following retakeOf links
+	// We need to find the root (original) course for each chain
+	const findRootCourse = (rowId) => {
+		// If we've already mapped this row, return its root
+		if (rowToGroupMap[rowId]) {
+			return rowToGroupMap[rowId];
+		}
+
+		// Find this row and check if it has a retakeOf
+		for (const term of terms) {
+			const row = term.rows.find((r) => r.id === rowId);
+			if (row) {
+				if (row.retakeOf) {
+					// This row is a retake of another, so find the root of that one
+					const root = findRootCourse(row.retakeOf);
+					rowToGroupMap[rowId] = root;
+					return root;
+				} else {
+					// This row has no retakeOf, so it's the root
+					rowToGroupMap[rowId] = rowId;
+					return rowId;
+				}
+			}
+		}
+		// If not found, return the rowId itself as root
+		rowToGroupMap[rowId] = rowId;
+		return rowId;
+	};
+
+	// Second pass: Group all instances by their root course
 	for (const t of terms) {
 		for (const r of t.rows) {
-			if (r.retakeOf) {
-				// Find the original course
-				let originalCourse = null;
-				let originalTermIndex = null;
-				for (const term of terms) {
-					const found = term.rows.find((row) => row.id === r.retakeOf);
-					if (found) {
-						originalCourse = found;
-						originalTermIndex = term.termIndex;
-						break;
-					}
-				}
+			// Find the root for this row (whether it has retakeOf or not)
+			const rootId = findRootCourse(r.id);
 
-				if (originalCourse && originalTermIndex) {
-					// Use the original course ID as the group identifier
-					const groupId = r.retakeOf;
+			// Initialize group if needed
+			if (!retakeGroups[rootId]) {
+				retakeGroups[rootId] = [];
+			}
 
-					if (!retakeGroups[groupId]) {
-						retakeGroups[groupId] = [];
-					}
-
-					// Only add the original course once to the group
-					if (
-						!retakeGroups[groupId].some(
-							(instance) => instance.rowId === r.retakeOf
-						)
-					) {
-						retakeGroups[groupId].push({
-							rowId: r.retakeOf,
-							termIndex: originalTermIndex,
-							grade: originalCourse.grade,
-							units: parseFloat(originalCourse.units) || 0,
-						});
-					}
-
-					// Add the current retake instance
-					retakeGroups[groupId].push({
-						rowId: r.id,
-						termIndex: t.termIndex,
-						grade: r.grade,
-						units: parseFloat(r.units) || 0,
-					});
-				}
+			// Add this instance to the group (avoid duplicates)
+			if (!retakeGroups[rootId].some((instance) => instance.rowId === r.id)) {
+				retakeGroups[rootId].push({
+					rowId: r.id,
+					termIndex: t.termIndex,
+					grade: r.grade,
+					units: parseFloat(r.units) || 0,
+				});
 			}
 		}
 	}
 
 	// Debug log to see what retake groups we found
-	console.log("Retake groups:", retakeGroups);
+	debugLog("Retake groups:", retakeGroups);
 
 	// Now determine exclusions for each group
 	for (const groupId in retakeGroups) {
@@ -117,9 +125,6 @@ export const computeRetakeExclusionsMap = (terms) => {
 		if (instances.length > 1) {
 			// Sort instances by term index to process chronologically
 			instances.sort((a, b) => a.termIndex - b.termIndex);
-
-			// Find the retake term (when the second instance occurs)
-			const retakeTermIndex = instances[1].termIndex;
 
 			// Determine which instance has the best grade
 			let bestInstance = null;
@@ -129,27 +134,55 @@ export const computeRetakeExclusionsMap = (terms) => {
 				const gradeValue = SCALE.points[instance.grade];
 				// Handle null grades (W) - they should not be considered "best"
 				if (gradeValue !== null && gradeValue !== undefined) {
+					// If same grade value, prefer the later attempt (more recent)
 					if (bestInstance === null || gradeValue > bestGradeValue) {
 						bestGradeValue = gradeValue;
 						bestInstance = instance;
+					} else if (gradeValue === bestGradeValue) {
+						// If grades are equal, use the later attempt
+						if (instance.termIndex > bestInstance.termIndex) {
+							bestInstance = instance;
+						}
 					}
 				}
 			}
 
-			console.log(
+			debugLog(
 				`Group ${groupId}: best instance is`,
 				bestInstance,
 				"from term",
-				bestInstance?.termIndex
-			);
-
-			// If we found a best instance, exclude all others from cumulative starting from retake term
+				bestInstance?.termIndex,
+				"with grade",
+				bestInstance?.grade
+			); // If we found a best instance, mark ALL rows in this chain
 			if (bestInstance) {
+				const bestTermIndex = bestInstance.termIndex;
+
 				for (const instance of instances) {
+					// Mark all rows as part of a retake chain
+					retakeChainInfo[instance.rowId] = {
+						inRetakeChain: true,
+						bestRowId: bestInstance.rowId,
+						bestTermIndex: bestTermIndex,
+					};
+
+					// Only add to cumulativeExclusions if it's NOT the best grade
 					if (instance.rowId !== bestInstance.rowId) {
-						cumulativeExclusions[instance.rowId] = retakeTermIndex;
-						console.log(
-							`Excluding row ${instance.rowId} from cumulative starting from term ${retakeTermIndex}`
+						// Each inferior attempt should be excluded starting from the NEXT term after it was taken
+						// This ensures:
+						// 1. The term where the course was taken includes it in term GPA and cum GPA
+						// 2. All subsequent terms exclude it from cumulative calculations
+						// 3. Previous terms are NEVER affected by future retakes
+
+						const excludeFromTerm = instance.termIndex + 1;
+
+						cumulativeExclusions[instance.rowId] = excludeFromTerm;
+						debugLog(
+							`Excluding row ${instance.rowId} (term ${instance.termIndex}, grade ${instance.grade}) from cumulative starting from term ${excludeFromTerm} (best grade ${bestInstance.grade} is in term ${bestTermIndex})`
+						);
+					} else {
+						debugLog(
+							`Row ${instance.rowId} (term ${instance.termIndex}, grade ${instance.grade}) is the BEST grade - will be used in cumulative`
 						);
 					}
 				}
@@ -157,9 +190,10 @@ export const computeRetakeExclusionsMap = (terms) => {
 		}
 	}
 
-	console.log("Cumulative exclusions:", cumulativeExclusions);
+	debugLog("Cumulative exclusions:", cumulativeExclusions);
+	debugLog("Retake chain info:", retakeChainInfo);
 
-	return { cumulativeExclusions, retakeGroups };
+	return { cumulativeExclusions, retakeGroups, retakeChainInfo };
 };
 
 export const termCalc = (term, excludeInfo) => {
@@ -181,7 +215,15 @@ export const termCalc = (term, excludeInfo) => {
 		if (gVal === null) w_credits = cleanFloat(w_credits + units);
 
 		// For TERM calculations, include ALL courses
-		const q = gVal === null ? 0 : cleanFloat(units * gVal);
+		// Calculate quality points with proper rounding to avoid floating point errors
+		let q = 0;
+		if (gVal !== null) {
+			// Multiply and round to 2 decimal places immediately to avoid accumulation errors
+			q = Math.round(units * gVal * 100) / 100;
+			debugLog(
+				`QP calculation for ${r.name || "course"}: ${units} * ${gVal} = ${q}`
+			);
+		}
 		qp = cleanFloat(qp + q);
 
 		// Earned credits for TERM calculations:
@@ -193,11 +235,15 @@ export const termCalc = (term, excludeInfo) => {
 		const excludedFromCumStartingTerm =
 			excludeInfo.cumulativeExclusions?.[r.id];
 
+		// Check if this row is part of a retake chain
+		const chainInfo = excludeInfo.retakeChainInfo?.[r.id];
+
 		return {
 			...r,
 			gVal,
 			q,
 			excludedFromCumStartingTerm,
+			inRetakeChain: chainInfo?.inRetakeChain || false,
 		};
 	});
 
@@ -222,6 +268,46 @@ export const computeCumMetrics = (terms, upToTermIdx, excludeInfo) => {
 		w_credits = 0,
 		excluded_credits = 0; // Track credits excluded from GPA calculation
 
+	// For each retake group, determine which instance to use at this point in time (upToTermIdx)
+	const bestAtThisPoint = {}; // groupId -> best rowId up to upToTermIdx
+
+	for (const groupId in excludeInfo.retakeGroups) {
+		const instances = excludeInfo.retakeGroups[groupId];
+		if (instances.length > 1) {
+			// Filter to only instances that have occurred by upToTermIdx
+			const availableInstances = instances.filter(
+				(inst) => inst.termIndex <= upToTermIdx
+			);
+
+			if (availableInstances.length > 0) {
+				// Find the best grade among available instances
+				let best = availableInstances[0];
+				let bestGradeValue = SCALE.points[best.grade];
+
+				for (const instance of availableInstances) {
+					const gradeValue = SCALE.points[instance.grade];
+					if (gradeValue !== null && gradeValue !== undefined) {
+						if (
+							bestGradeValue === null ||
+							bestGradeValue === undefined ||
+							gradeValue > bestGradeValue ||
+							(gradeValue === bestGradeValue &&
+								instance.termIndex > best.termIndex)
+						) {
+							best = instance;
+							bestGradeValue = gradeValue;
+						}
+					}
+				}
+
+				bestAtThisPoint[groupId] = best.rowId;
+				debugLog(
+					`At term ${upToTermIdx}, group ${groupId}: best available is row ${best.rowId} (term ${best.termIndex}, grade ${best.grade})`
+				);
+			}
+		}
+	}
+
 	for (const t of terms) {
 		if (t.termIndex > upToTermIdx) break;
 
@@ -234,18 +320,42 @@ export const computeCumMetrics = (terms, upToTermIdx, excludeInfo) => {
 			attempted = cleanFloat(attempted + units);
 			if (r.gVal === null) w_credits = cleanFloat(w_credits + units);
 
-			// Check if this course should be excluded from cumulative calculation
-			const excludeStartTerm = r.excludedFromCumStartingTerm;
-			const shouldExcludeFromCum =
-				excludeStartTerm !== undefined && upToTermIdx >= excludeStartTerm;
+			// Check if this row is part of a retake group
+			let shouldExcludeFromCum = false;
+
+			// Find which group this row belongs to (if any)
+			for (const groupId in excludeInfo.retakeGroups) {
+				const instances = excludeInfo.retakeGroups[groupId];
+				const isInGroup = instances.some((inst) => inst.rowId === r.id);
+
+				if (isInGroup && instances.length > 1) {
+					// This row is part of a retake group
+					const bestRowId = bestAtThisPoint[groupId];
+
+					// Exclude if this is NOT the best grade available at this point
+					if (bestRowId && r.id !== bestRowId) {
+						shouldExcludeFromCum = true;
+						debugLog(
+							`Row ${r.id} (${r.name}) in term ${t.termIndex}: excluded because row ${bestRowId} is better at term ${upToTermIdx}`
+						);
+					}
+					break;
+				}
+			}
 
 			if (shouldExcludeFromCum) {
-				// Track excluded credits (these don't count in GPA denominator)
+				// Track excluded credits (these don't count in GPA denominator or QP)
 				excluded_credits = cleanFloat(excluded_credits + units);
+				debugLog(
+					`  -> Excluding ${units} units from cumulative (excluded_credits now ${excluded_credits})`
+				);
 			} else {
 				// Only include in cumulative earned credits and QP if NOT excluded
 				if (r.gVal > 0) earned = cleanFloat(earned + units);
-				if (r.gVal !== null) qp = cleanFloat(qp + r.q);
+				if (r.gVal !== null) {
+					qp = cleanFloat(qp + r.q);
+					debugLog(`  -> Adding ${r.q} QP to cumulative (qp now ${qp})`);
+				}
 			}
 		}
 	}
@@ -254,7 +364,7 @@ export const computeCumMetrics = (terms, upToTermIdx, excludeInfo) => {
 	const gpaDenom = cleanFloat(attempted - w_credits - excluded_credits);
 	const gpa = gpaDenom > 0 ? cleanFloat(qp / gpaDenom) : 0;
 
-	console.log("Cumulative calculation result:", {
+	debugLog("Cumulative calculation result:", {
 		attempted,
 		earned,
 		qp,

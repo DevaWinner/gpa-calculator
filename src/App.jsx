@@ -9,6 +9,7 @@ import {
 	computeCumMetrics,
 	computeRetakeExclusionsMap,
 } from "./utils/calculations";
+import { debugError } from "./utils/debug";
 
 const STORAGE_KEY = "gpa_state_v3";
 
@@ -29,7 +30,7 @@ function App() {
 				setTransfers(state.transfers || []);
 				setTerms(state.terms || []);
 			} catch (e) {
-				console.error("Failed to restore state", e);
+				debugError("Failed to restore state", e);
 				seedDefaultTerms();
 			}
 		} else {
