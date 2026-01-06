@@ -76,7 +76,7 @@ function App() {
 						id: String(nextRowId + i - 1),
 						name: "",
 						units: 0,
-						grade: "W",
+						grade: "", // Changed from "W" to ""
 						retakeOf: null,
 					},
 				],
@@ -95,12 +95,46 @@ function App() {
 					id: String(nextRowId),
 					name: "",
 					units: 0,
-					grade: "W",
+					grade: "", // Changed from "W" to ""
 					retakeOf: null,
 				},
 			],
 		};
 		setTerms([...terms, newTerm]);
+		setNextRowId(nextRowId + 1);
+	};
+
+	const insertTermAfter = (afterTermIndex) => {
+		const newTerm = {
+			// Initially placeholder, will be re-indexed
+			termIndex: 0,
+			name: `Term`, 
+			rows: [
+				{
+					id: String(nextRowId),
+					name: "",
+					units: 0,
+					grade: "", // Changed from "W" to ""
+					retakeOf: null,
+				},
+			],
+		};
+		
+		const newTerms = [...terms];
+		// Insert after the given index
+		// termIndex is 1-based, array index is termIndex-1.
+		// Splice at (index) inserts before. We want to insert after termIndex.
+		// So splice at termIndex.
+		newTerms.splice(afterTermIndex, 0, newTerm);
+		
+		// Re-index everything
+		const reindexedTerms = newTerms.map((t, i) => ({
+			...t,
+			termIndex: i + 1,
+			name: t.name === "Term" ? `Term ${i + 1}` : t.name,
+		}));
+
+		setTerms(reindexedTerms);
 		setNextRowId(nextRowId + 1);
 	};
 
@@ -134,7 +168,7 @@ function App() {
 							id: String(nextRowId),
 							name: "",
 							units: 0,
-							grade: "W",
+							grade: "", // Changed from "W" to ""
 							retakeOf: null,
 						},
 					],
@@ -159,7 +193,7 @@ function App() {
 									id: String(nextRowId),
 									name: "",
 									units: 0,
-									grade: "W",
+									grade: "", // Changed from "W" to ""
 									retakeOf: null,
 								},
 							],
@@ -262,6 +296,7 @@ function App() {
 							setRetake={setRetake}
 							clearRetake={clearRetake}
 							setIsAnyModalOpen={setIsAnyModalOpen} // Pass the setter down
+							insertTermAfter={insertTermAfter} // Pass insert function
 						/>
 					))}
 				</section>

@@ -20,6 +20,7 @@ function TermCard({
 	setRetake,
 	clearRetake,
 	setIsAnyModalOpen, // New prop
+	insertTermAfter, // New prop
 }) {
 	const [activeModal, setActiveModal] = useState(null); // 'term' | 'cum' | null
 
@@ -40,18 +41,20 @@ function TermCard({
 			// Retakes: In term calc, retakes are NOT excluded from the term GPA usually?
 			// Wait, logic says: "ALL courses count for TERM calculations (no exclusions)"
 			// EXCEPT W.
-			const rows = termData.rows.map((r) => {
-				const isW = r.grade === "W";
-				const qp = r.q;
-				return {
-					name: r.name,
-					grade: r.grade,
-					units: r.units,
-					q: qp,
-					excluded: isW,
-					reason: isW ? "W Grade" : "",
-				};
-			});
+			const rows = termData.rows
+				.filter(r => r.name && r.name.trim() !== "" && (parseFloat(r.units) || 0) > 0)
+				.map((r) => {
+					const isW = r.grade === "W";
+					const qp = r.q;
+					return {
+						name: r.name,
+						grade: r.grade,
+						units: r.units,
+						q: qp,
+						excluded: isW,
+						reason: isW ? "W Grade" : "",
+					};
+				});
 			// GPA Denom for term = Attempted - W
 			// termData.attempted includes W now.
 			// We need w_credits to display GPA Denom accurately.
@@ -109,16 +112,20 @@ function TermCard({
 			}
 
 			// Iterate terms
-			for (const t of terms) {
-				if (t.termIndex > term.termIndex) break;
-				for (const r of t.rows) {
-					const units = parseFloat(r.units) || 0;
-					const isW = r.grade === "W";
-					const map = SCALE.points;
-					const gRaw = map[r.grade];
-					const gVal = gRaw === null ? null : gRaw ?? 0;
-					let q = 0;
-					if (gVal !== null) {
+							for (const t of terms) {
+								if (t.termIndex > term.termIndex) break;
+								for (const r of t.rows) {
+									// Filter out rows without a name or units for display purposes in the modal
+									if (!r.name || r.name.trim() === "" || (parseFloat(r.units) || 0) <= 0) {
+										continue;
+									}
+			
+									const units = parseFloat(r.units) || 0;
+									const isW = r.grade === "W";
+									const map = SCALE.points;
+									const gRaw = map[r.grade];
+									const gVal = gRaw === null ? null : gRaw ?? 0;
+									let q = 0;					if (gVal !== null) {
 						q = Math.round(units * gVal * 100) / 100;
 					}
 
@@ -193,10 +200,30 @@ function TermCard({
 						/>
 					</h2>
 				</div>
-				<div className="flex items-center gap-3">
+				<div className="flex items-center gap-1">
+					<button
+						onClick={() => insertTermAfter(term.termIndex)}
+						className="p-2 text-green-600 hover:text-green-800 transition-colors"
+						title="Insert Term After"
+					>
+						<svg
+							className="w-5 h-5"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth="2"
+								d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+							></path>
+						</svg>
+					</button>
 					<button
 						onClick={() => removeTerm(term.termIndex)}
 						className="p-2 text-red-600 hover:text-red-800 transition-colors"
+						title="Remove Term"
 					>
 						<svg
 							className="w-5 h-5"
