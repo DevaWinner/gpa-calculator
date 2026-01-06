@@ -14,6 +14,7 @@ export const SCALE = {
 		"D+",
 		"D",
 		"D-",
+		"E",
 		"F",
 		"UW",
 		"W",
@@ -30,6 +31,7 @@ export const SCALE = {
 		"D+": 1.4,
 		D: 1.0,
 		"D-": 0.7,
+		E: 0.0,
 		F: 0.0,
 		UW: 0.0,
 		W: null,
@@ -130,18 +132,13 @@ export const computeRetakeExclusionsMap = (terms) => {
 		}
 		// We need to pass the data expected by the rest of the logic
 		const r = allRows[rowId];
-		// Skip W grades from the "Processable Group" for Best Grade Logic?
-		// If we include W here, the "Best Grade" logic must ignore them.
-		// The previous logic had: `if (r.grade === "W") continue;` inside the loop.
-		// Let's filter W out of the *functional* retake group used for grade replacement.
-		if (r.grade !== "W") {
-			retakeGroups[root].push({
-				rowId: r.id,
-				termIndex: r.termIndex,
-				grade: r.grade,
-				units: parseFloat(r.units) || 0,
-			});
-		}
+		// Include ALL grades (including W) in the group so they are visually linked
+		retakeGroups[root].push({
+			rowId: r.id,
+			termIndex: r.termIndex,
+			grade: r.grade,
+			units: parseFloat(r.units) || 0,
+		});
 	}
 
 	debugLog("Retake groups (by UF root):", retakeGroups);
@@ -159,6 +156,7 @@ export const computeRetakeExclusionsMap = (terms) => {
 
 			for (const instance of instances) {
 				const gradeValue = SCALE.points[instance.grade];
+				// Handle null grades (shouldn't happen here due to W check, but safety first)
 				if (gradeValue !== null && gradeValue !== undefined) {
 					if (bestInstance === null || gradeValue > bestGradeValue) {
 						bestGradeValue = gradeValue;
@@ -172,18 +170,20 @@ export const computeRetakeExclusionsMap = (terms) => {
 				}
 			}
 
+			// Mark all rows as part of a retake chain, regardless of whether a "best" exists
+			for (const instance of instances) {
+				retakeChainInfo[instance.rowId] = {
+					inRetakeChain: true,
+					groupId: groupId,
+					// bestRowId might be null if all are W
+					bestRowId: bestInstance ? bestInstance.rowId : null, 
+					bestTermIndex: bestInstance ? bestInstance.termIndex : null,
+				};
+			}
+
+			// If we have a valid best grade, apply exclusions
 			if (bestInstance) {
-				const bestTermIndex = bestInstance.termIndex;
-
 				for (const instance of instances) {
-					// Mark all rows as part of a retake chain
-					retakeChainInfo[instance.rowId] = {
-						inRetakeChain: true,
-						bestRowId: bestInstance.rowId,
-						bestTermIndex: bestTermIndex,
-						groupId: groupId // Store group ID for lookup
-					};
-
 					// Only add to cumulativeExclusions if it's NOT the best grade
 					if (instance.rowId !== bestInstance.rowId) {
 						// Each inferior attempt should be excluded starting from the NEXT term after it was taken
