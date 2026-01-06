@@ -18,6 +18,20 @@ function App() {
 	const [transfers, setTransfers] = useState([]);
 	const [terms, setTerms] = useState([]);
 	const [nextRowId, setNextRowId] = useState(1);
+	const [isAnyModalOpen, setIsAnyModalOpen] = useState(false); // New state for modal control
+
+	// Effect to prevent body scrolling when modal is open
+	useEffect(() => {
+		if (isAnyModalOpen) {
+			document.body.style.overflow = 'hidden';
+		} else {
+			document.body.style.overflow = 'unset'; // Or 'auto' or 'initial'
+		}
+		// Cleanup effect
+		return () => {
+			document.body.style.overflow = 'unset';
+		};
+	}, [isAnyModalOpen]);
 
 	// Load from localStorage on mount
 	useEffect(() => {
@@ -247,6 +261,7 @@ function App() {
 							updateTermName={updateTermName}
 							setRetake={setRetake}
 							clearRetake={clearRetake}
+							setIsAnyModalOpen={setIsAnyModalOpen} // Pass the setter down
 						/>
 					))}
 				</section>

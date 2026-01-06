@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CourseRow from "./CourseRow";
-import { termCalc, computeCumMetrics, fmt } from "../utils/calculations";
+import CalculationDetailsModal from "./CalculationDetailsModal";
+import {
+	termCalc,
+	computeCumMetrics,
+	fmt,
+	SCALE,
+} from "../utils/calculations";
 
 function TermCard({
 	term,
@@ -13,9 +19,165 @@ function TermCard({
 	updateTermName,
 	setRetake,
 	clearRetake,
+	setIsAnyModalOpen, // New prop
 }) {
+	const [activeModal, setActiveModal] = useState(null); // 'term' | 'cum' | null
+
+	// Effect to inform parent when modal state changes
+	useEffect(() => {
+		setIsAnyModalOpen(!!activeModal);
+	}, [activeModal, setIsAnyModalOpen]);
+
+
 	const termData = termCalc(term, excludeMap);
 	const cumData = computeCumMetrics(terms, term.termIndex, excludeMap);
+
+	// Prepare data for the modal based on active type
+	const getModalData = () => {
+		if (activeModal === "term") {
+			// Filter out empty/invalid rows for cleaner display if desired, or keep all
+			// Term calc logic for exclusion: W is excluded from GPA denom.
+			// Retakes: In term calc, retakes are NOT excluded from the term GPA usually?
+			// Wait, logic says: "ALL courses count for TERM calculations (no exclusions)"
+			// EXCEPT W.
+			const rows = termData.rows.map((r) => {
+				const isW = r.grade === "W";
+				const qp = r.q;
+				return {
+					name: r.name,
+					grade: r.grade,
+					units: r.units,
+					q: qp,
+					excluded: isW,
+					reason: isW ? "W Grade" : "",
+				};
+			});
+			// GPA Denom for term = Attempted - W
+			// termData.attempted includes W now.
+			// We need w_credits to display GPA Denom accurately.
+			// Let's re-sum W from rows for display purposes
+			const wCreds = termData.rows.reduce(
+				(sum, r) => (r.grade === "W" ? sum + (parseFloat(r.units) || 0) : sum),
+				0
+			);
+
+			return {
+				title: `${term.name || `Term ${term.termIndex}`} — Term GPA Details`,
+				gpa: termData.gpa,
+				qp: termData.qp,
+				attempted: termData.attempted,
+				gpaDenom: termData.attempted - wCreds,
+				rows,
+			};
+		} else if (activeModal === "cum") {
+			// Reconstruct cumulative list
+			const rows = [];
+			let cumAttempted = 0;
+			let cumW = 0;
+			let cumExcludedRetake = 0;
+			let cumQP = 0;
+
+			// Need to replicate the "best at this point" logic for accurate reasons
+			const bestAtThisPoint = {};
+			for (const groupId in excludeMap.retakeGroups) {
+				const instances = excludeMap.retakeGroups[groupId];
+				if (instances.length > 1) {
+					const availableInstances = instances.filter(
+						(inst) => inst.termIndex <= term.termIndex
+					);
+					if (availableInstances.length > 0) {
+						let best = availableInstances[0];
+						let bestGradeValue = SCALE.points[best.grade];
+						for (const instance of availableInstances) {
+							const gradeValue = SCALE.points[instance.grade];
+							if (gradeValue !== null && gradeValue !== undefined) {
+								if (
+									bestGradeValue === null ||
+									bestGradeValue === undefined ||
+									gradeValue > bestGradeValue ||
+									(gradeValue === bestGradeValue &&
+										instance.termIndex > best.termIndex)
+								) {
+									best = instance;
+									bestGradeValue = gradeValue;
+								}
+							}
+						}
+						bestAtThisPoint[groupId] = best.rowId;
+					}
+				}
+			}
+
+			// Iterate terms
+			for (const t of terms) {
+				if (t.termIndex > term.termIndex) break;
+				for (const r of t.rows) {
+					const units = parseFloat(r.units) || 0;
+					const isW = r.grade === "W";
+					const map = SCALE.points;
+					const gRaw = map[r.grade];
+					const gVal = gRaw === null ? null : gRaw ?? 0;
+					let q = 0;
+					if (gVal !== null) {
+						q = Math.round(units * gVal * 100) / 100;
+					}
+
+					let excluded = false;
+					let reason = "";
+
+					cumAttempted += units;
+
+					if (isW) {
+						excluded = true;
+						reason = "W Grade";
+						cumW += units;
+					} else {
+						// Check retake exclusion
+						const chainInfo = excludeMap.retakeChainInfo?.[r.id];
+						if (chainInfo && chainInfo.groupId) {
+							const groupId = chainInfo.groupId;
+							const bestRowId = bestAtThisPoint[groupId];
+							if (bestRowId && r.id !== bestRowId) {
+								excluded = true;
+								reason = "Retake Policy";
+								cumExcludedRetake += units;
+							}
+						}
+					}
+					
+					if (!excluded) {
+						cumQP += q;
+					}
+
+					rows.push({
+						name: r.name,
+						termLabel: t.name || `Term ${t.termIndex}`,
+						grade: r.grade,
+						units: r.units,
+						q: q,
+						excluded,
+						reason,
+					});
+				}
+			}
+			
+			const gpaDenom = cumAttempted - cumW - cumExcludedRetake;
+
+			return {
+				title: `Cumulative GPA Details (thru ${
+					term.name || `Term ${term.termIndex}`
+				})`,
+				gpa: cumData.gpa,
+				qp: cumData.qp, // Should match cumQP roughly
+				attempted: cumData.attempted,
+				gpaDenom,
+				rows,
+			};
+		}
+		return null;
+	};
+
+	const modalData = activeModal ? getModalData() : null;
 
 	return (
 		<div className="term bg-white rounded-2xl shadow-sm ring-1 ring-gray-300 overflow-hidden">
@@ -30,12 +192,6 @@ function TermCard({
 							placeholder={`Term ${term.termIndex}`}
 						/>
 					</h2>
-					<span className="text-xs text-gray-700">
-						Term GPA:{" "}
-						<strong className="text-gray-900">
-							{fmt(termData.gpa, "gpa")}
-						</strong>
-					</span>
 				</div>
 				<div className="flex items-center gap-3">
 					<button
@@ -134,8 +290,26 @@ function TermCard({
 				</div>
 				{/* Term GPA Row */}
 				<div className="grid grid-cols-12 items-center mt-1">
-					<div className="col-span-3 font-semibold text-gray-800">
+					<div className="col-span-3 font-semibold text-gray-800 flex items-center gap-1">
 						Term GPA: <span>{fmt(termData.gpa, "gpa")}</span>
+						<button
+							onClick={() => setActiveModal("term")}
+							className="text-gray-400 hover:text-indigo-600 transition-colors"
+						>
+							<svg
+								className="w-4 h-4"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+						</button>
 					</div>
 					<div className="col-span-3 text-center">
 						{fmt(termData.attempted, "other")}
@@ -149,8 +323,26 @@ function TermCard({
 				</div>
 				{/* Cum GPA Row */}
 				<div className="grid grid-cols-12 items-center mt-3">
-					<div className="col-span-3 font-semibold text-gray-800">
+					<div className="col-span-3 font-semibold text-gray-800 flex items-center gap-1">
 						Cum GPA: <span>{fmt(cumData.gpa, "gpa")}</span>
+						<button
+							onClick={() => setActiveModal("cum")}
+							className="text-gray-400 hover:text-indigo-600 transition-colors"
+						>
+							<svg
+								className="w-4 h-4"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+						</button>
 					</div>
 					<div className="col-span-3 text-center">
 						{fmt(cumData.attempted, "other")}
@@ -163,6 +355,14 @@ function TermCard({
 					</div>
 				</div>
 			</div>
+
+			{activeModal && (
+				<CalculationDetailsModal
+					title={modalData.title}
+					data={modalData}
+					onClose={() => setActiveModal(null)}
+				/>
+			)}
 		</div>
 	);
 }
