@@ -3,6 +3,7 @@ import Header from "./components/Header";
 import TermCard from "./components/TermCard";
 import TranscriptStats from "./components/TranscriptStats";
 import TransferCredits from "./components/TransferCredits";
+import TrainingModule from "./components/TrainingModule";
 import {
 	SCALE,
 	fmt,
@@ -19,6 +20,7 @@ function App() {
 	const [terms, setTerms] = useState([]);
 	const [nextRowId, setNextRowId] = useState(1);
 	const [isAnyModalOpen, setIsAnyModalOpen] = useState(false); // New state for modal control
+	const [currentView, setCurrentView] = useState("calculator"); // 'calculator' | 'training'
 
 	// Effect to prevent body scrolling when modal is open
 	useEffect(() => {
@@ -272,9 +274,16 @@ function App() {
 		setTransferEarned(total);
 	}, [transfers]);
 
+	if (currentView === "training") {
+		return <TrainingModule onBack={() => setCurrentView("calculator")} />;
+	}
+
 	return (
 		<div className="bg-gray-50 text-gray-900 min-h-screen antialiased">
-			<Header clearAll={clearAll} />
+			<Header 
+				clearAll={clearAll} 
+				onNavigateTraining={() => setCurrentView("training")} 
+			/>
 
 			<main className="max-w-6xl mx-auto px-4 sm:px-6 pb-24">
 				{/* Transfer Credits Section */}
