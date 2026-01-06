@@ -11,7 +11,7 @@ function Header({ clearAll }) {
 					</p>
 				</div>
 				<div className="flex items-center gap-2 flex-wrap">
-					<span className="text-xs text-gray-500 font-medium">v1.4</span>
+					<span className="text-xs text-gray-500 font-medium">v2.0</span>
 					<button
 						onClick={clearAll}
 						className="rounded-xl border border-red-200 text-red-700 hover:bg-red-50 px-3 py-2 text-sm"
