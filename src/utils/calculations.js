@@ -59,69 +59,40 @@ export const fmt = (n, valueType = "other") => {
 };
 
 export const computeRetakeExclusionsMap = (terms) => {
-	const retakeGroups = {}; // Map rootCourseId -> array of all instances
+	const retakeGroups = {}; // Map normalizedName -> array of instances
 	const cumulativeExclusions = {}; // rowId -> startingFromTermIndex
-	const rowToGroupMap = {}; // Map rowId -> rootCourseId (to find group for any row)
-	const retakeChainInfo = {}; // Map rowId -> { inRetakeChain: true, bestRowId, excludeFromTerm }
+	const retakeChainInfo = {}; // rowId -> { inRetakeChain: true, bestRowId, excludeFromTerm }
 
-	// First pass: Build retake chains by following retakeOf links
-	// We need to find the root (original) course for each chain
-	const findRootCourse = (rowId) => {
-		// If we've already mapped this row, return its root
-		if (rowToGroupMap[rowId]) {
-			return rowToGroupMap[rowId];
-		}
-
-		// Find this row and check if it has a retakeOf
-		for (const term of terms) {
-			const row = term.rows.find((r) => r.id === rowId);
-			if (row) {
-				if (row.retakeOf) {
-					// This row is a retake of another, so find the root of that one
-					const root = findRootCourse(row.retakeOf);
-					rowToGroupMap[rowId] = root;
-					return root;
-				} else {
-					// This row has no retakeOf, so it's the root
-					rowToGroupMap[rowId] = rowId;
-					return rowId;
-				}
-			}
-		}
-		// If not found, return the rowId itself as root
-		rowToGroupMap[rowId] = rowId;
-		return rowId;
-	};
-
-	// Second pass: Group all instances by their root course
+	// First pass: Group all instances by their normalized course name
 	for (const t of terms) {
 		for (const r of t.rows) {
-			// Find the root for this row (whether it has retakeOf or not)
-			const rootId = findRootCourse(r.id);
+			const name = r.name ? r.name.trim().toLowerCase() : "";
+			if (!name) continue; // Skip unnamed courses
 
-			// Initialize group if needed
-			if (!retakeGroups[rootId]) {
-				retakeGroups[rootId] = [];
+			// If grade is W, skip it for retake grouping purposes (it doesn't replace and isn't replaced)
+			// But we still process it in termCalc for simple exclusion.
+			// Actually, if we have W, it shouldn't participate in "Best Grade" logic.
+			if (r.grade === "W") continue;
+
+			if (!retakeGroups[name]) {
+				retakeGroups[name] = [];
 			}
 
-			// Add this instance to the group (avoid duplicates)
-			if (!retakeGroups[rootId].some((instance) => instance.rowId === r.id)) {
-				retakeGroups[rootId].push({
-					rowId: r.id,
-					termIndex: t.termIndex,
-					grade: r.grade,
-					units: parseFloat(r.units) || 0,
-				});
-			}
+			retakeGroups[name].push({
+				rowId: r.id,
+				termIndex: t.termIndex,
+				grade: r.grade,
+				units: parseFloat(r.units) || 0,
+			});
 		}
 	}
 
 	// Debug log to see what retake groups we found
-	debugLog("Retake groups:", retakeGroups);
+	debugLog("Retake groups (by name):", retakeGroups);
 
 	// Now determine exclusions for each group
-	for (const groupId in retakeGroups) {
-		const instances = retakeGroups[groupId];
+	for (const name in retakeGroups) {
+		const instances = retakeGroups[name];
 		if (instances.length > 1) {
 			// Sort instances by term index to process chronologically
 			instances.sort((a, b) => a.termIndex - b.termIndex);
@@ -132,9 +103,8 @@ export const computeRetakeExclusionsMap = (terms) => {
 
 			for (const instance of instances) {
 				const gradeValue = SCALE.points[instance.grade];
-				// Handle null grades (W) - they should not be considered "best"
+				// Handle null grades (shouldn't happen here due to W check, but safety first)
 				if (gradeValue !== null && gradeValue !== undefined) {
-					// If same grade value, prefer the later attempt (more recent)
 					if (bestInstance === null || gradeValue > bestGradeValue) {
 						bestGradeValue = gradeValue;
 						bestInstance = instance;
@@ -147,14 +117,6 @@ export const computeRetakeExclusionsMap = (terms) => {
 				}
 			}
 
-			debugLog(
-				`Group ${groupId}: best instance is`,
-				bestInstance,
-				"from term",
-				bestInstance?.termIndex,
-				"with grade",
-				bestInstance?.grade
-			); // If we found a best instance, mark ALL rows in this chain
 			if (bestInstance) {
 				const bestTermIndex = bestInstance.termIndex;
 
@@ -169,29 +131,13 @@ export const computeRetakeExclusionsMap = (terms) => {
 					// Only add to cumulativeExclusions if it's NOT the best grade
 					if (instance.rowId !== bestInstance.rowId) {
 						// Each inferior attempt should be excluded starting from the NEXT term after it was taken
-						// This ensures:
-						// 1. The term where the course was taken includes it in term GPA and cum GPA
-						// 2. All subsequent terms exclude it from cumulative calculations
-						// 3. Previous terms are NEVER affected by future retakes
-
 						const excludeFromTerm = instance.termIndex + 1;
-
 						cumulativeExclusions[instance.rowId] = excludeFromTerm;
-						debugLog(
-							`Excluding row ${instance.rowId} (term ${instance.termIndex}, grade ${instance.grade}) from cumulative starting from term ${excludeFromTerm} (best grade ${bestInstance.grade} is in term ${bestTermIndex})`
-						);
-					} else {
-						debugLog(
-							`Row ${instance.rowId} (term ${instance.termIndex}, grade ${instance.grade}) is the BEST grade - will be used in cumulative`
-						);
 					}
 				}
 			}
 		}
 	}
-
-	debugLog("Cumulative exclusions:", cumulativeExclusions);
-	debugLog("Retake chain info:", retakeChainInfo);
 
 	return { cumulativeExclusions, retakeGroups, retakeChainInfo };
 };
@@ -209,26 +155,24 @@ export const termCalc = (term, excludeInfo) => {
 		const gRaw = map[grade];
 		const gVal = gRaw === null ? null : gRaw ?? 0;
 
-		// ALL courses count for TERM calculations (no exclusions)
-		attempted = cleanFloat(attempted + units);
+		// Per requirements: Remove 'W' courses from total credit calculation.
+		// So we only add to 'attempted' if grade is NOT W.
+		if (gVal !== null) {
+			attempted = cleanFloat(attempted + units);
+		} else {
+			// It is W
+			w_credits = cleanFloat(w_credits + units);
+		}
 
-		if (gVal === null) w_credits = cleanFloat(w_credits + units);
-
-		// For TERM calculations, include ALL courses
-		// Calculate quality points with proper rounding to avoid floating point errors
+		// Calculate quality points with proper rounding
 		let q = 0;
 		if (gVal !== null) {
-			// Multiply and round to 2 decimal places immediately to avoid accumulation errors
 			q = Math.round(units * gVal * 100) / 100;
-			debugLog(
-				`QP calculation for ${r.name || "course"}: ${units} * ${gVal} = ${q}`
-			);
 		}
 		qp = cleanFloat(qp + q);
 
-		// Earned credits for TERM calculations:
+		// Earned credits:
 		// - Include passing grades (> 0)
-		// - Exclude F (0.0), UW (0.0), and W (null)
 		if (gVal > 0) earned = cleanFloat(earned + units);
 
 		// Mark exclusion info for cumulative calculations
@@ -247,9 +191,9 @@ export const termCalc = (term, excludeInfo) => {
 		};
 	});
 
-	// GPA calculation includes F grades (0.0 grade points)
-	// GPA denominator = attempted - W credits (F grades ARE included in denominator)
-	const gpaDenom = cleanFloat(attempted - w_credits);
+	// GPA denominator = attempted
+	// (Since 'attempted' now excludes W, we don't need to subtract w_credits)
+	const gpaDenom = cleanFloat(attempted);
 	const gpa = gpaDenom > 0 ? cleanFloat(qp / gpaDenom) : 0;
 
 	return {
@@ -266,13 +210,13 @@ export const computeCumMetrics = (terms, upToTermIdx, excludeInfo) => {
 		earned = 0,
 		qp = 0,
 		w_credits = 0,
-		excluded_credits = 0; // Track credits excluded from GPA calculation
+		excluded_credits = 0; // Track credits excluded from GPA calculation due to retakes
 
-	// For each retake group, determine which instance to use at this point in time (upToTermIdx)
-	const bestAtThisPoint = {}; // groupId -> best rowId up to upToTermIdx
+	// For each retake group, determine which instance to use at this point in time
+	const bestAtThisPoint = {}; // normalizedName -> best rowId up to upToTermIdx
 
-	for (const groupId in excludeInfo.retakeGroups) {
-		const instances = excludeInfo.retakeGroups[groupId];
+	for (const name in excludeInfo.retakeGroups) {
+		const instances = excludeInfo.retakeGroups[name];
 		if (instances.length > 1) {
 			// Filter to only instances that have occurred by upToTermIdx
 			const availableInstances = instances.filter(
@@ -299,11 +243,7 @@ export const computeCumMetrics = (terms, upToTermIdx, excludeInfo) => {
 						}
 					}
 				}
-
-				bestAtThisPoint[groupId] = best.rowId;
-				debugLog(
-					`At term ${upToTermIdx}, group ${groupId}: best available is row ${best.rowId} (term ${best.termIndex}, grade ${best.grade})`
-				);
+				bestAtThisPoint[name] = best.rowId;
 			}
 		}
 	}
@@ -316,83 +256,71 @@ export const computeCumMetrics = (terms, upToTermIdx, excludeInfo) => {
 		for (const r of termData.rows) {
 			const units = parseFloat(r.units) || 0;
 
-			// ALL instances count as attempted
+			// Handle W grades - completely ignore them for cumulative sums
+			if (r.gVal === null) {
+				w_credits = cleanFloat(w_credits + units);
+				continue;
+			}
+
+			// It's a non-W grade, so initially count it
 			attempted = cleanFloat(attempted + units);
-			if (r.gVal === null) w_credits = cleanFloat(w_credits + units);
 
-			// Check if this row is part of a retake group
+			// Check if this row is part of a retake group that needs exclusion
 			let shouldExcludeFromCum = false;
+			const name = r.name ? r.name.trim().toLowerCase() : "";
 
-			// Find which group this row belongs to (if any)
-			for (const groupId in excludeInfo.retakeGroups) {
-				const instances = excludeInfo.retakeGroups[groupId];
-				const isInGroup = instances.some((inst) => inst.rowId === r.id);
-
-				if (isInGroup && instances.length > 1) {
-					// This row is part of a retake group
-					const bestRowId = bestAtThisPoint[groupId];
-
+			if (name && excludeInfo.retakeGroups[name]) {
+				const instances = excludeInfo.retakeGroups[name];
+				if (instances.length > 1) {
+					const bestRowId = bestAtThisPoint[name];
 					// Exclude if this is NOT the best grade available at this point
 					if (bestRowId && r.id !== bestRowId) {
 						shouldExcludeFromCum = true;
-						debugLog(
-							`Row ${r.id} (${r.name}) in term ${t.termIndex}: excluded because row ${bestRowId} is better at term ${upToTermIdx}`
-						);
 					}
-					break;
 				}
 			}
 
 			if (shouldExcludeFromCum) {
-				// Track excluded credits (these don't count in GPA denominator or QP)
+				// If excluded due to retake policy, remove from attempted/QP
+				// We already added it to 'attempted' above, so we don't subtract from there?
+				// Wait, if it's excluded from GPA, it shouldn't be in the denominator.
+				// So we treat it as if it wasn't attempted for GPA purposes?
+				// Or do we track 'excluded_credits' and subtract later?
+				// Let's track excluded credits.
 				excluded_credits = cleanFloat(excluded_credits + units);
-				debugLog(
-					`  -> Excluding ${units} units from cumulative (excluded_credits now ${excluded_credits})`
-				);
 			} else {
-				// Only include in cumulative earned credits and QP if NOT excluded
+				// If NOT excluded:
+				// Earned credits: only if passed
 				if (r.gVal > 0) earned = cleanFloat(earned + units);
-				if (r.gVal !== null) {
-					qp = cleanFloat(qp + r.q);
-					debugLog(`  -> Adding ${r.q} QP to cumulative (qp now ${qp})`);
-				}
+				// QP: always add for valid attempts
+				qp = cleanFloat(qp + r.q);
 			}
 		}
 	}
 
-	// GPA denominator = attempted - W credits - excluded retake credits
-	const gpaDenom = cleanFloat(attempted - w_credits - excluded_credits);
+	// GPA denominator = attempted - excluded_credits
+	// (attempted already excludes W)
+	const gpaDenom = cleanFloat(attempted - excluded_credits);
 	const gpa = gpaDenom > 0 ? cleanFloat(qp / gpaDenom) : 0;
 
-	debugLog("Cumulative calculation result:", {
-		attempted,
-		earned,
-		qp,
-		w_credits,
-		excluded_credits,
-		gpaDenom,
-		gpa,
-	});
-
 	return {
-		attempted: cleanFloat(attempted), // All courses count as attempted
-		earned: cleanFloat(earned), // Only best instances count as earned
-		qp: cleanFloat(qp), // Only best instances contribute QP
-		gpa: cleanFloat(gpa), // GPA = QP / (attempted - W credits - excluded credits)
+		attempted: cleanFloat(attempted), // Total attempted (excluding W)
+		earned: cleanFloat(earned), // Earned (excluding W and replaced courses)
+		qp: cleanFloat(qp),
+		gpa: cleanFloat(gpa),
 	};
 };
 
+// Keep these helpers for now, even if UI might not fully use them or they're legacy
 export const buildEarlierCourseOptions = (
 	terms,
 	currentTermIdx,
 	currentRowId
 ) => {
 	const opts = [];
-
 	for (const t of terms) {
 		const tIdx = t.termIndex;
 		if (tIdx >= currentTermIdx) break;
-
 		for (const r of t.rows) {
 			const rid = r.id;
 			if (!rid || rid === currentRowId) continue;
@@ -403,7 +331,6 @@ export const buildEarlierCourseOptions = (
 			opts.push({ value: rid, label });
 		}
 	}
-
 	return opts;
 };
 
@@ -413,11 +340,9 @@ export const buildEarlierCoursesByTerm = (
 	currentRowId
 ) => {
 	const termGroups = [];
-
 	for (const t of terms) {
 		const tIdx = t.termIndex;
 		if (tIdx >= currentTermIdx) break;
-
 		const courses = [];
 		for (const r of t.rows) {
 			const rid = r.id;
@@ -432,7 +357,6 @@ export const buildEarlierCoursesByTerm = (
 				grade,
 			});
 		}
-
 		if (courses.length > 0) {
 			termGroups.push({
 				termIndex: tIdx,
@@ -441,6 +365,5 @@ export const buildEarlierCoursesByTerm = (
 			});
 		}
 	}
-
 	return termGroups;
 };
