@@ -75,8 +75,60 @@ function TrainingModule({ onBack }) {
 			),
 		},
 		{
+			id: "transfers",
+			title: "2. Transfer Credits",
+			content: (
+				<div className="space-y-4">
+					<h3 className="text-xl font-bold text-gray-800">
+						Managing Transfer Credits
+					</h3>
+					<p className="text-gray-700">
+						Transfer credits allow you to account for coursework completed at other institutions. These credits are handled differently from institutional courses.
+					</p>
+					
+					<div className="grid grid-cols-1 gap-4">
+						<div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+							<h4 className="font-semibold text-indigo-800 mb-2">Impact on Transcript:</h4>
+							<ul className="list-disc pl-5 space-y-2 text-sm text-indigo-700">
+								<li>
+									<strong>Total Earned Credits:</strong> YES. Transfer credits are added to your total credits earned.
+								</li>
+								<li>
+									<strong>Institutional GPA:</strong> NO. They do <strong>not</strong> affect the GPA calculation.
+								</li>
+								<li>
+									<strong>Attempted Credits:</strong> NO. They are not counted as institutional attempts.
+								</li>
+							</ul>
+						</div>
+
+						<div className="border p-4 rounded-lg bg-white">
+							<h4 className="font-bold text-gray-800 mb-2">How to Use:</h4>
+							<ol className="list-decimal pl-5 space-y-2 text-sm text-gray-600">
+								<li>
+									Locate the <strong>Transfer Credits</strong> section at the top of the main page.
+								</li>
+								<li>
+									Click the <strong>"Add Transfer"</strong> button to create a new row.
+								</li>
+								<li>
+									Enter the <strong>School Name</strong> (e.g., "State College").
+								</li>
+								<li>
+									Enter the total <strong>Credits Transferred</strong> (e.g., "12.00").
+								</li>
+								<li>
+									To remove a transfer record, click the <span className="text-red-500 font-bold">Trash Icon</span> next to that row.
+								</li>
+							</ol>
+						</div>
+					</div>
+				</div>
+			),
+		},
+		{
 			id: "grades",
-			title: "2. Grading Scale",
+			title: "3. Grading Scale",
 			content: (
 				<div className="space-y-4">
 					<h3 className="text-xl font-bold text-gray-800">
@@ -126,7 +178,7 @@ function TrainingModule({ onBack }) {
 		},
 		{
 			id: "retakes",
-			title: "3. Retake Logic",
+			title: "4. Retake Logic",
 			content: (
 				<div className="space-y-4">
 					<h3 className="text-xl font-bold text-gray-800">
