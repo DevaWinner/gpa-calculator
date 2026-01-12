@@ -21,7 +21,7 @@ function TransferCredits({ transfers, setTransfers }) {
 	);
 
 	return (
-		<section className="mb-8 max-w-xl">
+		<section id="transferCredits" className="mb-8 max-w-xl">
 			<div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-300 overflow-hidden">
 				<div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
 					<h2 className="text-lg font-bold text-gray-800">Transfer Credits</h2>
@@ -82,7 +82,7 @@ function TransferCredits({ transfers, setTransfers }) {
 													updateTransfer(
 														transfer.id,
 														"school",
-														e.target.value.toUpperCase()
+														e.target.value.replace(/\s+/g, '').toUpperCase()
 													)
 												}
 												className="w-full p-2 text-sm rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-transparent transition-all uppercase"

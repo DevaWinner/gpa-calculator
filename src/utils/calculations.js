@@ -100,7 +100,7 @@ export const computeRetakeExclusionsMap = (terms) => {
 			// Let's include W in the structure but handle grade logic later.
 
 			// Link by Name
-			const name = r.name ? r.name.trim().toLowerCase() : "";
+			const name = r.name ? r.name.replace(/\s+/g, '').toLowerCase() : "";
 			if (name) {
 				if (!nameToIds[name]) nameToIds[name] = [];
 				nameToIds[name].push(r.id);

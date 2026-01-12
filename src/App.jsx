@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Joyride, { STATUS, EVENTS } from "react-joyride";
 import Header from "./components/Header";
 import TermCard from "./components/TermCard";
 import TranscriptStats from "./components/TranscriptStats";
@@ -19,8 +20,184 @@ function App() {
 	const [transfers, setTransfers] = useState([]);
 	const [terms, setTerms] = useState([]);
 	const [nextRowId, setNextRowId] = useState(1);
-	const [isAnyModalOpen, setIsAnyModalOpen] = useState(false); // New state for modal control
-	const [currentView, setCurrentView] = useState("calculator"); // 'calculator' | 'training'
+		const [isAnyModalOpen, setIsAnyModalOpen] = useState(false); // New state for modal control
+		const [currentView, setCurrentView] = useState("calculator"); // 'calculator' | 'training'
+		const [runTour, setRunTour] = useState(false);
+	const [stepIndex, setStepIndex] = useState(0);
+
+	// Refs to track previous counts for tour logic
+	const prevTransfersLength = useRef(0);
+	const prevTermsLength = useRef(0);
+	const prevFirstTermRowsLength = useRef(0);
+	
+		const tourSteps = [
+		{
+			target: "body",
+			content: (
+				<div>
+					<h3 className="font-bold text-lg mb-2">Welcome to the Interactive Tour!</h3>
+					<p>
+						We'll guide you through the app. Follow the instructions to proceed.
+					</p>
+				</div>
+			),
+			placement: "center",
+			disableBeacon: true,
+		},
+		{
+			target: "#transferCredits",
+			content: "Step 1: Click 'Add Transfer' to add a transfer credit record.",
+			spotlightClicks: true,
+			hideFooter: true,
+			disableOverlayClose: true,
+		},
+		{
+			target: ".tour-insert-term-btn",
+			content: "Step 2: Great! Now, try inserting a new term. Click this '+' icon.",
+			spotlightClicks: true,
+			hideFooter: true,
+			disableOverlayClose: true,
+		},
+		{
+			target: ".tour-add-course-btn",
+			content: "Step 3: Now, add a course to the first term. Click the '+' button at the bottom of Term 1.",
+			spotlightClicks: true,
+			hideFooter: true,
+			disableOverlayClose: true,
+		},
+		{
+			target: ".tour-course-row",
+			content: (
+				<div>
+					<p>Step 4: Enter Course Details.</p>
+					<ul className="list-disc pl-4 text-sm mt-2">
+						<li>Name: <strong>Math 101</strong></li>
+						<li>Units: <strong>3</strong></li>
+						<li>Grade: <strong>C</strong></li>
+					</ul>
+				</div>
+			),
+			spotlightClicks: true,
+			hideFooter: true,
+			disableOverlayClose: true,
+		},
+		{
+			target: ".btn-add-term",
+			content: "Step 5: Let's add another term at the very end. Click this big green '+' button.",
+			spotlightClicks: true,
+			hideFooter: true,
+			disableOverlayClose: true,
+		},
+		{
+			target: ".term:last-child .tour-add-course-btn",
+			content: (
+				<div>
+					<p>Step 6: In this new term, add the <strong>same course</strong> to see the retake logic.</p>
+					<p className="text-sm mt-1">Add a course, then enter:</p>
+					<ul className="list-disc pl-4 text-sm mt-1">
+						<li>Name: <strong>Math 101</strong></li>
+						<li>Units: <strong>3</strong></li>
+						<li>Grade: <strong>A</strong></li>
+					</ul>
+				</div>
+			),
+			spotlightClicks: true,
+			hideFooter: true,
+			disableOverlayClose: true,
+		},
+		{
+			target: ".tour-course-row",
+			content: (
+				<div>
+					<p className="font-bold text-green-600">Retake Detected!</p>
+					<p>Notice the orange <strong>**</strong> on the first 'Math 101'.</p>
+					<p className="text-sm">Since you got an 'A' later, the earlier 'C' is excluded from your Cumulative GPA.</p>
+				</div>
+			),
+		},
+		{
+			target: ".tour-cum-gpa-info-btn",
+			content: "Step 7: Click this 'i' icon to view the detailed GPA calculation breakdown.",
+			spotlightClicks: true,
+			hideFooter: true,
+			disableOverlayClose: true,
+		},
+		{
+			target: ".tour-calc-modal",
+			content: "Here you can see exactly which courses are included or excluded. You're all set!",
+			placement: "center",
+		},
+	];
+
+	const handleJoyrideCallback = (data) => {
+		const { status, type, index, action } = data;
+		if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+			setRunTour(false);
+			setStepIndex(0);
+		} else if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+			// Update index state to keep in sync if controlled updates happen via UI
+			setStepIndex(index + (action === 'prev' ? -1 : 1));
+		}
+	};
+
+	// --- Tour Automation Logic ---
+
+	// Step 1: Advance when transfer added
+	useEffect(() => {
+		if (runTour && stepIndex === 1 && transfers.length > prevTransfersLength.current) {
+			setStepIndex(2);
+		}
+		prevTransfersLength.current = transfers.length;
+	}, [transfers, runTour, stepIndex]);
+
+	// Step 2 & 5: Advance when term added (insert or append)
+	useEffect(() => {
+		if (runTour && terms.length > prevTermsLength.current) {
+			if (stepIndex === 2) setStepIndex(3);
+			if (stepIndex === 5) setStepIndex(6);
+		}
+		prevTermsLength.current = terms.length;
+	}, [terms, runTour, stepIndex]);
+
+	// Step 3: Advance when course added to Term 1
+	useEffect(() => {
+		const t1Rows = terms[0]?.rows?.length || 0;
+		if (runTour && stepIndex === 3 && t1Rows > prevFirstTermRowsLength.current) {
+			setStepIndex(4);
+		}
+		prevFirstTermRowsLength.current = t1Rows;
+	}, [terms, runTour, stepIndex]);
+
+	// Step 4: Advance when Math 101 / C is entered in Term 1
+	useEffect(() => {
+		if (runTour && stepIndex === 4 && terms[0]) {
+			const rows = terms[0].rows;
+			const validRow = rows.find(r => 
+				r.name?.toUpperCase() === "MATH 101" && 
+				r.grade === "C"
+			);
+			if (validRow) setStepIndex(5);
+		}
+	}, [terms, runTour, stepIndex]);
+
+	// Step 6: Advance when Math 101 / A is entered in LAST term
+	useEffect(() => {
+		if (runTour && stepIndex === 6 && terms.length > 0) {
+			const lastTerm = terms[terms.length - 1];
+			const validRow = lastTerm.rows.find(r => 
+				r.name?.toUpperCase() === "MATH 101" && 
+				r.grade === "A"
+			);
+			if (validRow) setStepIndex(7);
+		}
+	}, [terms, runTour, stepIndex]);
+
+	// Step 8: Advance when Modal Opens
+	useEffect(() => {
+		if (runTour && stepIndex === 8 && isAnyModalOpen) {
+			setStepIndex(9);
+		}
+	}, [isAnyModalOpen, runTour, stepIndex]);
 
 	// Effect to prevent body scrolling when modal is open
 	useEffect(() => {
@@ -280,9 +457,27 @@ function App() {
 
 	return (
 		<div className="bg-gray-50 text-gray-900 min-h-screen antialiased">
+			<Joyride
+				steps={tourSteps}
+				run={runTour}
+				stepIndex={stepIndex} // Controlled step index
+				continuous
+				showSkipButton
+				showProgress
+				disableOverlayClose={true}
+				spotlightClicks={true}
+				callback={handleJoyrideCallback}
+				styles={{
+					options: {
+						primaryColor: "#4f46e5", // Indigo-600
+						zIndex: 1000,
+					},
+				}}
+			/>
 			<Header 
 				clearAll={clearAll} 
-				onNavigateTraining={() => setCurrentView("training")} 
+				onNavigateTraining={() => setCurrentView("training")}
+				onStartTour={() => { setRunTour(true); setStepIndex(0); }} 
 			/>
 
 			<main className="max-w-6xl mx-auto px-4 sm:px-6 pb-24">
@@ -318,7 +513,7 @@ function App() {
 				/>
 
 				{/* Add Term Button */}
-				<div className="sticky bottom-4 mt-10 flex justify-center">
+				<div className="sticky bottom-4 mt-10 flex justify-center btn-add-term">
 					<button
 						onClick={addTerm}
 						className="p-3 rounded-2xl bg-green-600 hover:bg-green-700 text-white shadow-lg"

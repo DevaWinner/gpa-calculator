@@ -14,9 +14,9 @@ function CourseRow({
 	const [showMenu, setShowMenu] = useState(false);
 
 	const handleUpdate = (field, value) => {
-		// Convert course names to uppercase
+		// Convert course names to uppercase and remove all whitespace
 		if (field === "name") {
-			value = value.toUpperCase();
+			value = value.replace(/\s+/g, '').toUpperCase();
 		}
 		updateCourse(term.termIndex, row.id, field, value);
 	};
@@ -49,7 +49,7 @@ function CourseRow({
 	const displayCellClass = "text-center text-sm text-gray-600 font-medium";
 
 	return (
-		<tr className={`course-row ${rowClasses} relative`}>
+		<tr className={`course-row ${rowClasses} relative tour-course-row`}>
 			{/* Course Name */}
 			<td className={baseCellClass}>
 				<div className="flex items-center gap-1">
@@ -128,7 +128,7 @@ function CourseRow({
 			<td className={`${baseCellClass} text-center relative`}>
 				<button
 					onClick={() => setShowMenu(!showMenu)}
-					className="p-1 text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center justify-center"
+					className="p-1 text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center justify-center tour-row-menu-btn"
 				>
 					<svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
 						<path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>

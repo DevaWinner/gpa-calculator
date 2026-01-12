@@ -324,7 +324,7 @@ function ActionMenu({
 	return (
 		<div
 			ref={menuRef}
-			className="action-menu fixed bg-white border border-gray-300 rounded-lg shadow-lg z-[100] py-1 min-w-[200px] max-w-[280px] max-h-[400px] overflow-y-auto"
+			className="action-menu fixed bg-white border border-gray-300 rounded-lg shadow-lg z-[100] py-1 min-w-[200px] max-w-[280px] max-h-[400px] overflow-y-auto tour-action-menu"
 			style={{
 				animation: "menuSlideIn 0.15s ease-out",
 				top: `${menuPosition.top}px`,

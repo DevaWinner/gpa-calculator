@@ -188,7 +188,7 @@ function TermCard({
 
 	return (
 		<div className="term bg-white rounded-2xl shadow-sm ring-1 ring-gray-300 overflow-hidden">
-			<div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
+			<div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 tour-term-header">
 				<div className="flex items-baseline gap-3">
 					<h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
 						<input
@@ -203,7 +203,7 @@ function TermCard({
 				<div className="flex items-center gap-1">
 					<button
 						onClick={() => insertTermAfter(term.termIndex)}
-						className="p-2 text-green-600 hover:text-green-800 transition-colors"
+						className="p-2 text-green-600 hover:text-green-800 transition-colors tour-insert-term-btn"
 						title="Insert Term After"
 					>
 						<svg
@@ -285,7 +285,7 @@ function TermCard({
 							<td colSpan="6" className="px-3 py-3 text-center">
 								<button
 									onClick={() => addCourse(term.termIndex)}
-									className="inline-flex items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors group"
+									className="inline-flex items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors group tour-add-course-btn"
 								>
 									<svg
 										className="w-5 h-5"
@@ -321,7 +321,7 @@ function TermCard({
 						Term GPA: <span>{fmt(termData.gpa, "gpa")}</span>
 						<button
 							onClick={() => setActiveModal("term")}
-							className="text-gray-400 hover:text-indigo-600 transition-colors"
+							className="text-gray-400 hover:text-indigo-600 transition-colors tour-term-gpa-info-btn"
 						>
 							<svg
 								className="w-4 h-4"
@@ -354,7 +354,7 @@ function TermCard({
 						Cum GPA: <span>{fmt(cumData.gpa, "gpa")}</span>
 						<button
 							onClick={() => setActiveModal("cum")}
-							className="text-gray-400 hover:text-indigo-600 transition-colors"
+							className="text-gray-400 hover:text-indigo-600 transition-colors tour-cum-gpa-info-btn"
 						>
 							<svg
 								className="w-4 h-4"
