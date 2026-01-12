@@ -1,4 +1,9 @@
-function Header({ clearAll, onNavigateTraining, onStartTour, onOpenEquivalences }) {
+function Header({
+	clearAll,
+	onNavigateTraining,
+	onStartTour,
+	onOpenEquivalences,
+}) {
 	return (
 		<header className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 mb-10">
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -16,7 +21,7 @@ function Header({ clearAll, onNavigateTraining, onStartTour, onOpenEquivalences 
 						onClick={onOpenEquivalences}
 						className="rounded-xl border border-indigo-200 text-indigo-700 hover:bg-indigo-50 px-3 py-2 text-sm"
 					>
-						Equivalences
+						Configure Equivalences
 					</button>
 					<button
 						onClick={onNavigateTraining}
