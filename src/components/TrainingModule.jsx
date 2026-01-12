@@ -224,6 +224,45 @@ function TrainingModule({ onBack }) {
 			),
 		},
 		{
+			id: "equivalences",
+			title: "5. Equivalences",
+			content: (
+				<div className="space-y-4">
+					<h3 className="text-xl font-bold text-gray-800">
+						Course Equivalences
+					</h3>
+					<p className="text-gray-700">
+						The <strong>Equivalences</strong> feature allows you to define global rules for courses that should be considered identical, even if they have different names.
+					</p>
+					
+					<div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+						<h4 className="font-semibold text-purple-800 mb-2">When to use:</h4>
+						<p className="text-sm text-purple-700">
+							Use this when a course is equivalent to another course (e.g., <strong>MATH 101</strong> equivalent to <strong>MATH 100</strong>) and you want the system to <em>always</em> treat them as the same course for retake purposes, without manually linking every single instance.
+						</p>
+					</div>
+
+					<div className="border p-4 rounded-lg bg-white mt-4">
+						<h4 className="font-bold text-gray-800 mb-2">How to Set Up:</h4>
+						<ol className="list-decimal pl-5 space-y-2 text-sm text-gray-600">
+							<li>
+								Click the <strong>"Equivalences"</strong> button in the top header.
+							</li>
+							<li>
+								In the modal, enter the two course names (e.g., <strong>Course A:</strong> MATH101, <strong>Course B:</strong> MATH100).
+							</li>
+							<li>
+								Click <strong>Add</strong>. The pair will appear in the list below.
+							</li>
+							<li>
+								<strong>Result:</strong> Now, if you have MATH 101 (Grade: F) and MATH 100 (Grade: A) anywhere in your transcript, the system will automatically apply the retake logic (excluding the F).
+							</li>
+						</ol>
+					</div>
+				</div>
+			),
+		},
+		{
 			id: "assessment",
 			title: "Knowledge Check",
 			content: (

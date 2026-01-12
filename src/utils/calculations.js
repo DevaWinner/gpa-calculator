@@ -60,7 +60,7 @@ export const fmt = (n, valueType = "other") => {
 	return processed.toFixed(decimals);
 };
 
-export const computeRetakeExclusionsMap = (terms) => {
+export const computeRetakeExclusionsMap = (terms, equivalences = []) => {
 	const retakeGroups = {}; // Map groupID (root rep) -> array of instances
 	const cumulativeExclusions = {}; // rowId -> startingFromTermIndex
 	const retakeChainInfo = {}; // rowId -> { inRetakeChain: true, bestRowId, excludeFromTerm }
@@ -121,6 +121,20 @@ export const computeRetakeExclusionsMap = (terms) => {
 		const ids = nameToIds[name];
 		for (let i = 1; i < ids.length; i++) {
 			union(ids[0], ids[i]);
+		}
+	}
+
+	// Union courses based on global equivalences
+	for (const eq of equivalences) {
+		const nameA = eq.courseA.replace(/\s+/g, '').toLowerCase();
+		const nameB = eq.courseB.replace(/\s+/g, '').toLowerCase();
+
+		const idsA = nameToIds[nameA];
+		const idsB = nameToIds[nameB];
+
+		if (idsA && idsA.length > 0 && idsB && idsB.length > 0) {
+			// Union the first instance of each; UF will handle the rest
+			union(idsA[0], idsB[0]);
 		}
 	}
 

@@ -5,6 +5,7 @@ import TermCard from "./components/TermCard";
 import TranscriptStats from "./components/TranscriptStats";
 import TransferCredits from "./components/TransferCredits";
 import TrainingModule from "./components/TrainingModule";
+import EquivalencesModal from "./components/EquivalencesModal";
 import {
 	SCALE,
 	fmt,
@@ -21,17 +22,18 @@ function App() {
 	const [terms, setTerms] = useState([]);
 	const [nextRowId, setNextRowId] = useState(1);
 		const [isAnyModalOpen, setIsAnyModalOpen] = useState(false); // New state for modal control
-		const [currentView, setCurrentView] = useState("calculator"); // 'calculator' | 'training'
-		const [runTour, setRunTour] = useState(false);
-	const [stepIndex, setStepIndex] = useState(0);
-
-	// Refs to track previous counts for tour logic
-	const prevTransfersLength = useRef(0);
-	const prevTermsLength = useRef(0);
-	const prevFirstTermRowsLength = useRef(0);
-	
-		const tourSteps = [
-		{
+			const [currentView, setCurrentView] = useState("calculator"); // 'calculator' | 'training'
+			const [runTour, setRunTour] = useState(false);
+			const [stepIndex, setStepIndex] = useState(0);
+			const [equivalences, setEquivalences] = useState([]);
+			const [showEquivalences, setShowEquivalences] = useState(false);
+		
+			// Refs to track previous counts for tour logic
+			const prevTransfersLength = useRef(0);
+			const prevTermsLength = useRef(0);
+			const prevFirstTermRowsLength = useRef(0);
+			
+				const tourSteps = [		{
 			target: "body",
 			content: (
 				<div>
@@ -222,6 +224,7 @@ function App() {
 				setTransferEarned(state.transferEarned || 0);
 				setTransfers(state.transfers || []);
 				setTerms(state.terms || []);
+				setEquivalences(state.equivalences || []);
 			} catch (e) {
 				debugError("Failed to restore state", e);
 				seedDefaultTerms();
@@ -239,10 +242,11 @@ function App() {
 				transferEarned,
 				transfers,
 				terms,
+				equivalences,
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 		}
-	}, [nextRowId, transferEarned, transfers, terms]);
+	}, [nextRowId, transferEarned, transfers, terms, equivalences]);
 
 	const seedDefaultTerms = () => {
 		const defaultTerms = [];
@@ -434,11 +438,12 @@ function App() {
 		setTransferEarned(0);
 		setTransfers([]);
 		setNextRowId(1);
+		setEquivalences([]);
 		seedDefaultTerms();
 	};
 
 	// Calculate statistics
-	const excludeMap = computeRetakeExclusionsMap(terms);
+	const excludeMap = computeRetakeExclusionsMap(terms, equivalences);
 	const lastTermIndex = terms.length;
 	const instStats = computeCumMetrics(terms, lastTermIndex, excludeMap);
 
@@ -474,10 +479,18 @@ function App() {
 					},
 				}}
 			/>
+			{showEquivalences && (
+				<EquivalencesModal
+					equivalences={equivalences}
+					setEquivalences={setEquivalences}
+					onClose={() => setShowEquivalences(false)}
+				/>
+			)}
 			<Header 
 				clearAll={clearAll} 
 				onNavigateTraining={() => setCurrentView("training")}
-				onStartTour={() => { setRunTour(true); setStepIndex(0); }} 
+				onStartTour={() => { setRunTour(true); setStepIndex(0); }}
+				onOpenEquivalences={() => setShowEquivalences(true)}
 			/>
 
 			<main className="max-w-6xl mx-auto px-4 sm:px-6 pb-24">
