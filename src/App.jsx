@@ -626,7 +626,7 @@ function App() {
 					e.stopPropagation();
 					setIsSessionManagerOpen(!isSessionManagerOpen);
 				}}
-				className="fixed left-6 bottom-6 z-40 p-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg transition-transform hover:scale-110 flex items-center gap-2 group"
+				className="js-library-toggle fixed left-6 bottom-6 z-40 p-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg transition-transform hover:scale-110 flex items-center gap-2 group"
 				title="Open Transcript Library"
 			>
 				<svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
