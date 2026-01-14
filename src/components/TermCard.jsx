@@ -21,9 +21,9 @@ function TermCard({
 	clearRetake,
 	setIsAnyModalOpen, // New prop
 	insertTermAfter, // New prop
+	toggleTermHighlight, // New prop
 }) {
 	const [activeModal, setActiveModal] = useState(null); // 'term' | 'cum' | null
-	const [isHighlighted, setIsHighlighted] = useState(false);
 
 	// Effect to inform parent when modal state changes
 	useEffect(() => {
@@ -190,7 +190,7 @@ function TermCard({
 	return (
 		<div
 			className={`term bg-white rounded-2xl shadow-sm ring-1 ring-gray-300 overflow-hidden transition-all duration-300 ${
-				isHighlighted ? "ring-2 ring-yellow-400 bg-yellow-50" : ""
+				term.isHighlighted ? "ring-2 ring-yellow-400 bg-yellow-50" : ""
 			}`}
 		>
 			<div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 tour-term-header">
@@ -207,17 +207,17 @@ function TermCard({
 				</div>
 				<div className="flex items-center gap-1">
 					<button
-						onClick={() => setIsHighlighted(!isHighlighted)}
+						onClick={() => toggleTermHighlight(term.termIndex)}
 						className={`p-2 transition-colors ${
-							isHighlighted
+							term.isHighlighted
 								? "text-yellow-500 hover:text-yellow-600"
 								: "text-gray-400 hover:text-yellow-500"
 						}`}
-						title={isHighlighted ? "Remove Highlight" : "Highlight Term"}
+						title={term.isHighlighted ? "Remove Highlight" : "Highlight Term"}
 					>
 						<svg
 							className="w-5 h-5"
-							fill={isHighlighted ? "currentColor" : "none"}
+							fill={term.isHighlighted ? "currentColor" : "none"}
 							stroke="currentColor"
 							viewBox="0 0 24 24"
 						>

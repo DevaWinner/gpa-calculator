@@ -254,6 +254,7 @@ function App() {
 			defaultTerms.push({
 				termIndex: i,
 				name: `Term ${i}`,
+				isHighlighted: false,
 				rows: [
 					{
 						id: String(nextRowId + i - 1),
@@ -273,6 +274,7 @@ function App() {
 		const newTerm = {
 			termIndex: terms.length + 1,
 			name: `Term ${terms.length + 1}`,
+			isHighlighted: false,
 			rows: [
 				{
 					id: String(nextRowId),
@@ -292,6 +294,7 @@ function App() {
 			// Initially placeholder, will be re-indexed
 			termIndex: 0,
 			name: `Term`, 
+			isHighlighted: false,
 			rows: [
 				{
 					id: String(nextRowId),
@@ -319,6 +322,13 @@ function App() {
 
 		setTerms(reindexedTerms);
 		setNextRowId(nextRowId + 1);
+	};
+
+	const toggleTermHighlight = (termIndex) => {
+		const newTerms = terms.map((t) =>
+			t.termIndex === termIndex ? { ...t, isHighlighted: !t.isHighlighted } : t
+		);
+		setTerms(newTerms);
 	};
 
 	const removeTerm = (termIndex) => {
@@ -514,6 +524,7 @@ function App() {
 							clearRetake={clearRetake}
 							setIsAnyModalOpen={setIsAnyModalOpen} // Pass the setter down
 							insertTermAfter={insertTermAfter} // Pass insert function
+							toggleTermHighlight={toggleTermHighlight} // Pass highlight toggle
 						/>
 					))}
 				</section>
