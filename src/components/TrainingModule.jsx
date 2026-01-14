@@ -75,6 +75,10 @@ function TrainingModule({ onBack }) {
 									<span className="font-bold text-gray-800 w-24 flex-shrink-0">Delete Term:</span>
 									<span>Click the red trash icon <svg className="w-4 h-4 inline text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> to remove a term and all its courses.</span>
 								</li>
+								<li className="flex items-start">
+									<span className="font-bold text-gray-800 w-24 flex-shrink-0">Highlight:</span>
+									<span>Click the star/highlight icon <svg className="w-4 h-4 inline text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg> to flag a term with a yellow background. Use this to mark terms with concerns or those that need to be revisited.</span>
+								</li>
 							</ul>
 						</div>
 
@@ -119,8 +123,88 @@ function TrainingModule({ onBack }) {
 			),
 		},
 		{
+			id: "transcript-library",
+			title: "2. Transcript Library",
+			content: (
+				<div className="space-y-8">
+					<div>
+						<h3 className="text-2xl font-bold text-gray-800 mb-3">
+							Managing Multiple Transcripts
+						</h3>
+						<p className="text-gray-700 leading-relaxed">
+							The <strong>Transcript Library</strong> is your hub for creating and managing multiple student records. It is accessible via the floating button at the bottom-left of your screen.
+						</p>
+					</div>
+
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+							<h4 className="font-bold text-indigo-700 mb-4 flex items-center">
+								<svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+								Library Features
+							</h4>
+							<ul className="space-y-4 text-sm text-gray-600">
+								<li className="flex items-start gap-2">
+									<div className="p-1 bg-indigo-100 rounded text-indigo-700 shrink-0 mt-0.5">
+										<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+									</div>
+									<div>
+										<strong className="block text-gray-800">Access:</strong>
+										<span>Click the <strong>Library</strong> button (with the current transcript name) in the bottom-left corner to open the floating menu.</span>
+									</div>
+								</li>
+								<li className="flex items-start gap-2">
+									<div className="p-1 bg-green-100 rounded text-green-700 shrink-0 mt-0.5">
+										<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+									</div>
+									<div>
+										<strong className="block text-gray-800">Create New:</strong>
+										<span>Click the "New Transcript" button inside the library to start a fresh record. The menu stays open so you can rename it immediately.</span>
+									</div>
+								</li>
+								<li className="flex items-start gap-2">
+									<div className="p-1 bg-indigo-100 rounded text-indigo-700 shrink-0 mt-0.5">
+										<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+									</div>
+									<div>
+										<strong className="block text-gray-800">Switching:</strong>
+										<span>Click any transcript in the list to load it. The menu remains open to allow quick switching between records.</span>
+									</div>
+								</li>
+							</ul>
+						</div>
+
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+							<h4 className="font-bold text-indigo-700 mb-4 flex items-center">
+								<svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+								Editing & Deleting
+							</h4>
+							<div className="space-y-4">
+								<p className="text-sm text-gray-600">The library allows for quick management without leaving your workflow:</p>
+								<div className="flex gap-4">
+									<div className="flex-1 bg-gray-50 p-3 rounded border border-gray-200">
+										<div className="flex items-center gap-2 mb-1">
+											<svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+											<strong className="text-xs font-bold text-gray-700 uppercase">Rename</strong>
+										</div>
+										<p className="text-xs text-gray-500">Click the pencil icon on any item. Type the new name and press Enter.</p>
+									</div>
+									<div className="flex-1 bg-red-50 p-3 rounded border border-red-100">
+										<div className="flex items-center gap-2 mb-1">
+											<svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+											<strong className="text-xs font-bold text-red-700 uppercase">Delete</strong>
+										</div>
+										<p className="text-xs text-red-600">Click the trash icon to instantly remove a transcript. No confirmation is required.</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			),
+		},
+		{
 			id: "transfers",
-			title: "2. Transfer Credits",
+			title: "3. Transfer Credits",
 			content: (
 				<div className="space-y-6">
 					<div>
@@ -174,7 +258,7 @@ function TrainingModule({ onBack }) {
 		},
 		{
 			id: "grades",
-			title: "3. Grading Scale",
+			title: "4. Grading Scale",
 			content: (
 				<div className="space-y-6">
 					<div>
@@ -250,7 +334,7 @@ function TrainingModule({ onBack }) {
 		},
 		{
 			id: "retakes",
-			title: "4. Retake Logic",
+			title: "5. Retake Logic",
 			content: (
 				<div className="space-y-8">
 					<div>
@@ -326,7 +410,7 @@ function TrainingModule({ onBack }) {
 		},
 		{
 			id: "equivalences",
-			title: "5. Equivalences",
+			title: "6. Equivalences",
 			content: (
 				<div className="space-y-6">
 					<div>
@@ -399,7 +483,7 @@ function TrainingModule({ onBack }) {
 				<div>
 					<h2 className="text-2xl font-black">System Training Module</h2>
 					<p className="text-indigo-200 text-sm">
-						Comprehensive guide to the GPA Calculator System v2.0
+						Comprehensive guide to the GPA Calculator System v3.0
 					</p>
 				</div>
 				<button

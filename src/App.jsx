@@ -42,14 +42,22 @@ function App() {
 				// Session Management State
 				const [sessions, setSessions] = useState([]);
 					const [activeSessionId, setActiveSessionId] = useState(null);
-					const [isSessionManagerOpen, setIsSessionManagerOpen] = useState(false);
 				
-					// Refs to track previous counts for tour logic
-					const prevTransfersLength = useRef(0);
-					const prevTermsLength = useRef(0);
-					const prevFirstTermRowsLength = useRef(0);
+						const [isSessionManagerOpen, setIsSessionManagerOpen] = useState(false);
+				
 					
-					const tourSteps = [		{
+				
+						// Refs to track previous counts for tour logic
+				
+						const prevTransfersLength = useRef(0);
+				
+						const prevTermsLength = useRef(0);
+				
+						const prevFirstTermRowsLength = useRef(0);
+				
+						
+				
+						const tourSteps = [		{
 			target: "body",
 			content: (
 				<div>
@@ -293,14 +301,19 @@ function App() {
 	}, [activeSessionId, nextRowId, transferEarned, transfers, terms, equivalences]);
 
 	// Session Handlers
-	const handleSwitchSession = (sessionId) => {
-		// Save current before switching (already handled by useEffect largely, but ensure safety)
-		// Load new
+	const loadSession = (sessionId) => {
 		const data = loadSessionData(sessionId);
 		if (data) {
 			setActiveSessionId(sessionId);
 			restoreState(data);
-			setIsSessionManagerOpen(false);
+			return true;
+		}
+		return false;
+	};
+
+	const handleSwitchSession = (sessionId) => {
+		if (loadSession(sessionId)) {
+			// setIsSessionManagerOpen(false); // Kept open per user request
 		}
 	};
 
@@ -315,7 +328,7 @@ function App() {
 		setEquivalences([]);
 		setNextRowId(1);
 		seedDefaultTerms(); // This sets 'terms' state directly
-		setIsSessionManagerOpen(false);
+		// setIsSessionManagerOpen(false); // Kept open per user request
 	};
 
 	const handleRenameSession = (id, newName) => {
@@ -329,7 +342,7 @@ function App() {
 		// If deleted active session, switch to another or create new
 		if (id === activeSessionId) {
 			if (updatedIndex.length > 0) {
-				handleSwitchSession(updatedIndex[0].id);
+				loadSession(updatedIndex[0].id);
 			} else {
 				handleCreateSession(); // Create fresh if all deleted
 			}
@@ -559,7 +572,7 @@ function App() {
 	}
 
 	return (
-		<div className="bg-gray-50 text-gray-900 min-h-screen antialiased">
+		<div className="bg-gray-50 text-gray-900 h-screen antialiased flex flex-col overflow-hidden relative">
 			<Joyride
 				steps={tourSteps}
 				run={runTour}
@@ -584,6 +597,7 @@ function App() {
 					onClose={() => setShowEquivalences(false)}
 				/>
 			)}
+
 			<SessionManager
 				isOpen={isSessionManagerOpen}
 				onClose={() => setIsSessionManagerOpen(false)}
@@ -594,68 +608,86 @@ function App() {
 				onRenameSession={handleRenameSession}
 				onDeleteSession={handleDeleteSession}
 			/>
-			<Header 
-				clearAll={clearAll} 
-				onNavigateTraining={() => setCurrentView("training")}
-				onStartTour={() => { setRunTour(true); setStepIndex(0); }}
-				onOpenEquivalences={() => setShowEquivalences(true)}
-				onOpenSessions={() => setIsSessionManagerOpen(true)}
-				activeSessionName={sessions.find(s => s.id === activeSessionId)?.name}
-			/>
 
-			<main className="max-w-6xl mx-auto px-4 sm:px-6 pb-24">
-				{/* Transfer Credits Section */}
-				<TransferCredits transfers={transfers} setTransfers={setTransfers} />
+			{/* Floating Toggle Button */}
+			<button
+				onClick={(e) => {
+					e.stopPropagation();
+					setIsSessionManagerOpen(!isSessionManagerOpen);
+				}}
+				className="fixed left-6 bottom-6 z-40 p-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg transition-transform hover:scale-110 flex items-center gap-2 group"
+				title="Open Transcript Library"
+			>
+				<svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+				</svg>
+				<span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-in-out whitespace-nowrap text-sm font-semibold">
+					{sessions.find(s => s.id === activeSessionId)?.name || "Library"}
+				</span>
+			</button>
 
-				{/* Terms */}
-				<section className="space-y-8">
-					{terms.map((term) => (
-						<TermCard
-							key={term.termIndex}
-							term={term}
-							terms={terms}
-							excludeMap={excludeMap}
-							addCourse={addCourse}
-							removeTerm={removeTerm}
-							removeCourse={removeCourse}
-							updateCourse={updateCourse}
-							updateTermName={updateTermName}
-							setRetake={setRetake}
-							clearRetake={clearRetake}
-							setIsAnyModalOpen={setIsAnyModalOpen} // Pass the setter down
-							insertTermAfter={insertTermAfter} // Pass insert function
-							toggleTermHighlight={toggleTermHighlight} // Pass highlight toggle
-						/>
-					))}
-				</section>
+			<main className="flex-1 overflow-y-auto px-4 sm:px-8 pt-6 pb-24 scroll-smooth">
+				<div className="max-w-5xl mx-auto">
+					<Header 
+						clearAll={clearAll} 
+						onNavigateTraining={() => setCurrentView("training")}
+						onStartTour={() => { setRunTour(true); setStepIndex(0); }}
+						onOpenEquivalences={() => setShowEquivalences(true)}
+					/>
+					
+					{/* Transfer Credits Section */}
+					<TransferCredits transfers={transfers} setTransfers={setTransfers} />
 
-				{/* Transcript Statistics */}
-				<TranscriptStats
-					instStats={instStats}
-					transferEarned={transferEarned}
-					setTransferEarned={setTransferEarned}
-				/>
+					{/* Terms */}
+					<section className="space-y-8">
+						{terms.map((term) => (
+							<TermCard
+								key={term.termIndex}
+								term={term}
+								terms={terms}
+								excludeMap={excludeMap}
+								addCourse={addCourse}
+								removeTerm={removeTerm}
+								removeCourse={removeCourse}
+								updateCourse={updateCourse}
+								updateTermName={updateTermName}
+								setRetake={setRetake}
+								clearRetake={clearRetake}
+								setIsAnyModalOpen={setIsAnyModalOpen} // Pass the setter down
+								insertTermAfter={insertTermAfter} // Pass insert function
+								toggleTermHighlight={toggleTermHighlight} // Pass highlight toggle
+							/>
+						))}
+					</section>
 
-				{/* Add Term Button */}
-				<div className="sticky bottom-4 mt-10 flex justify-center btn-add-term">
-					<button
-						onClick={addTerm}
-						className="p-3 rounded-2xl bg-green-600 hover:bg-green-700 text-white shadow-lg"
-					>
-						<svg
-							className="w-6 h-6"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
+					{/* Transcript Statistics */}
+					<TranscriptStats
+						instStats={instStats}
+						transferEarned={transferEarned}
+						setTransferEarned={setTransferEarned}
+					/>
+
+					{/* Add Term Button */}
+					<div className="mt-10 flex justify-center btn-add-term pb-10">
+						<button
+							onClick={addTerm}
+							className="p-3 rounded-2xl bg-green-600 hover:bg-green-700 text-white shadow-lg transition-transform hover:scale-105"
 						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								strokeWidth="2"
-								d="M12 4v16m8-8H4"
-							></path>
-						</svg>
-					</button>
+							<svg
+								className="w-6 h-6"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									d="M12 4v16m8-8H4"
+								></path>
+							</svg>
+						</button>
+					</div>
 				</div>
 			</main>
 		</div>
