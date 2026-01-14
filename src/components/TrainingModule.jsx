@@ -8,28 +8,37 @@ function TrainingModule({ onBack }) {
 			id: "overview",
 			title: "Overview & Objectives",
 			content: (
-				<div className="space-y-4">
-					<h3 className="text-xl font-bold text-indigo-900">
-						Course Objective
-					</h3>
-					<p className="text-gray-700">
-						By the end of this training, you will be able to:
-					</p>
-					<ul className="list-disc pl-5 space-y-2 text-gray-700">
-						<li>Accurately input terms, courses, and transfer credits.</li>
-						<li>
-							Understand the grading scale, including specific handling of 'W' and
-							'E' grades.
-						</li>
-						<li>
-							Master the <strong>Retake Policy</strong> logic: how automatic and
-							manual linking works.
-						</li>
-						<li>
-							Interpret Cumulative vs. Term GPA calculations using the "Details"
-							view.
-						</li>
-					</ul>
+				<div className="space-y-6">
+					<div>
+						<h3 className="text-2xl font-bold text-indigo-900 mb-2">
+							Course Objective
+						</h3>
+						<p className="text-gray-700 leading-relaxed">
+							Welcome to the GPA Calculator Training Module. This tool is designed to help students and advisors simulate and understand complex GPA scenarios, including retakes, transfer credits, and term-by-term performance analysis.
+						</p>
+					</div>
+
+					<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+						<h4 className="font-semibold text-gray-800 mb-4 text-lg">Key Learning Outcomes</h4>
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div className="flex items-start">
+								<div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">1</div>
+								<p className="text-gray-600 text-sm">Master accurate data entry for terms, courses, and external transfer credits.</p>
+							</div>
+							<div className="flex items-start">
+								<div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">2</div>
+								<p className="text-gray-600 text-sm">Understand the specific grading scale and the impact of special grades like 'W', 'UW', and 'E'.</p>
+							</div>
+							<div className="flex items-start">
+								<div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">3</div>
+								<p className="text-gray-600 text-sm">Navigate the complex "Retake Policy" logic, including automatic name matching and manual overrides.</p>
+							</div>
+							<div className="flex items-start">
+								<div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">4</div>
+								<p className="text-gray-600 text-sm">Analyze "what-if" scenarios to see how future grades could repair a cumulative GPA.</p>
+							</div>
+						</div>
+					</div>
 				</div>
 			),
 		},
@@ -37,39 +46,74 @@ function TrainingModule({ onBack }) {
 			id: "basics",
 			title: "1. The Basics",
 			content: (
-				<div className="space-y-4">
-					<h3 className="text-xl font-bold text-gray-800">
-						Getting Started
-					</h3>
-					<p className="text-gray-700">
-						The interface consists of <strong>Terms</strong> cards. Each term contains rows of <strong>Courses</strong>.
-					</p>
-					<div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-						<h4 className="font-semibold text-blue-800 mb-2">Key Actions:</h4>
-						<ul className="list-disc pl-5 space-y-1 text-sm text-blue-700">
-							<li><strong>Add Term:</strong> Click the floating green "+" button at the bottom.</li>
-							<li><strong>Insert Term:</strong> Click the small "+" icon in a term header to insert a new term immediately after it.</li>
-							<li><strong>Remove Term:</strong> Click the red trash icon in the term header to delete the entire term.</li>
-							<li><strong>Add Course:</strong> Click the "+" button at the bottom of any term card.</li>
-						</ul>
-					</div>
-					
-					<div className="bg-green-50 p-4 rounded-lg border border-green-100 mt-4">
-						<h4 className="font-semibold text-green-800 mb-2">Data Saving & Clearing</h4>
-						<p className="text-sm text-green-700 mb-2">
-							<strong>Auto-Save:</strong> All your input is automatically saved to your browser's local storage. You can close the tab and come back later; your data will still be there.
-						</p>
-						<p className="text-sm text-green-700">
-							<strong>Clear All:</strong> The "Clear All" button at the top header completely resets the calculator. It wipes all terms, courses, and transfer credits, restoring the default empty state. Use this only when starting a completely new student record.
+				<div className="space-y-8">
+					<div>
+						<h3 className="text-2xl font-bold text-gray-800 mb-3">
+							Getting Started
+						</h3>
+						<p className="text-gray-700 leading-relaxed">
+							The interface is built around the concept of <strong>Terms</strong>. A transcript is a chronological sequence of terms, each containing multiple <strong>Courses</strong>.
 						</p>
 					</div>
 
-					<div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100 mt-4">
-						<h4 className="font-semibold text-yellow-800 mb-2">Default Grade</h4>
-						<p className="text-sm text-yellow-700">
-							Newly created courses default to <strong>"Select Grade"</strong> (empty). 
-							If left empty, the course is excluded from GPA calculations (treated like a 'W').
-						</p>
+					<div className="grid grid-cols-1 gap-6">
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+							<h4 className="font-bold text-indigo-700 mb-4 flex items-center">
+								<svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+								Managing Terms
+							</h4>
+							<ul className="space-y-3 text-sm text-gray-600">
+								<li className="flex items-start">
+									<span className="font-bold text-gray-800 w-24 flex-shrink-0">Add Term:</span>
+									<span>Use the large floating <span className="text-green-600 font-bold text-lg leading-none align-middle">+</span> button at the bottom of the page to append a new term to the end of your transcript.</span>
+								</li>
+								<li className="flex items-start">
+									<span className="font-bold text-gray-800 w-24 flex-shrink-0">Insert Term:</span>
+									<span>Hover over a term header and click the small <span className="text-green-600 font-bold">+</span> icon to insert a term <em>immediately after</em> the current one. This is useful for adding missed semesters.</span>
+								</li>
+								<li className="flex items-start">
+									<span className="font-bold text-gray-800 w-24 flex-shrink-0">Delete Term:</span>
+									<span>Click the red trash icon <svg className="w-4 h-4 inline text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> to remove a term and all its courses.</span>
+								</li>
+							</ul>
+						</div>
+
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+							<h4 className="font-bold text-indigo-700 mb-4 flex items-center">
+								<svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+								Course Management
+							</h4>
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+								<div>
+									<h5 className="font-semibold text-gray-800 mb-2 text-sm">Adding Courses</h5>
+									<p className="text-sm text-gray-600 mb-2">Click the "+" button inside any term card to add a row.</p>
+									<div className="bg-yellow-50 p-3 rounded-lg border border-yellow-100">
+										<p className="text-xs text-yellow-800">
+											<strong>Important:</strong> New courses default to an empty grade. An empty grade acts like a 'W'—it is <strong>excluded</strong> from GPA calculations until you select a letter grade.
+										</p>
+									</div>
+								</div>
+								<div>
+									<h5 className="font-semibold text-gray-800 mb-2 text-sm">Duplicate Detection</h5>
+									<p className="text-sm text-gray-600 mb-2">The system monitors for errors in real-time.</p>
+									<div className="bg-red-50 p-3 rounded-lg border border-red-100">
+										<p className="text-xs text-red-800">
+											<strong>Warning:</strong> Entering the same course name twice in one term triggers a red alert. Duplicates do <strong>not</strong> trigger retake logic; you must fix the duplication first.
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div className="bg-indigo-900 text-indigo-100 p-4 rounded-lg flex items-center justify-between">
+						<div>
+							<span className="font-bold text-white block">Auto-Save Enabled</span>
+							<span className="text-sm opacity-80">Your work is saved locally to your browser instantly.</span>
+						</div>
+						<div className="text-2xl opacity-50">
+							<svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+						</div>
 					</div>
 				</div>
 			),
@@ -78,50 +122,52 @@ function TrainingModule({ onBack }) {
 			id: "transfers",
 			title: "2. Transfer Credits",
 			content: (
-				<div className="space-y-4">
-					<h3 className="text-xl font-bold text-gray-800">
-						Managing Transfer Credits
-					</h3>
-					<p className="text-gray-700">
-						Transfer credits allow you to account for coursework completed at other institutions. These credits are handled differently from institutional courses.
-					</p>
+				<div className="space-y-6">
+					<div>
+						<h3 className="text-2xl font-bold text-gray-800 mb-3">
+							Transfer Credits
+						</h3>
+						<p className="text-gray-700 leading-relaxed">
+							Coursework completed at other institutions is handled separately from your institutional GPA. These credits contribute to your degree progress ("Earned Credits") but usually do not affect your GPA calculation.
+						</p>
+					</div>
 					
-					<div className="grid grid-cols-1 gap-4">
-						<div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-							<h4 className="font-semibold text-indigo-800 mb-2">Impact on Transcript:</h4>
-							<ul className="list-disc pl-5 space-y-2 text-sm text-indigo-700">
-								<li>
-									<strong>Total Earned Credits:</strong> YES. Transfer credits are added to your total credits earned.
-								</li>
-								<li>
-									<strong>Institutional GPA:</strong> NO. They do <strong>not</strong> affect the GPA calculation.
-								</li>
-								<li>
-									<strong>Attempted Credits:</strong> NO. They are not counted as institutional attempts.
-								</li>
-							</ul>
-						</div>
+					<div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+						<table className="min-w-full divide-y divide-gray-200">
+							<thead className="bg-gray-50">
+								<tr>
+									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metric</th>
+									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Impact</th>
+									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Explanation</th>
+								</tr>
+							</thead>
+							<tbody className="bg-white divide-y divide-gray-200">
+								<tr>
+									<td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">Total Earned Credits</td>
+									<td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-bold">YES</td>
+									<td className="px-6 py-4 text-sm text-gray-600">Added directly to your total credit count for graduation.</td>
+								</tr>
+								<tr>
+									<td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">Institutional GPA</td>
+									<td className="px-6 py-4 whitespace-nowrap text-sm text-red-500 font-bold">NO</td>
+									<td className="px-6 py-4 text-sm text-gray-600">Grades from other schools do not change your local GPA.</td>
+								</tr>
+								<tr>
+									<td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">Attempted Credits</td>
+									<td className="px-6 py-4 whitespace-nowrap text-sm text-red-500 font-bold">NO</td>
+									<td className="px-6 py-4 text-sm text-gray-600">They are not counted as local attempts.</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
 
-						<div className="border p-4 rounded-lg bg-white">
-							<h4 className="font-bold text-gray-800 mb-2">How to Use:</h4>
-							<ol className="list-decimal pl-5 space-y-2 text-sm text-gray-600">
-								<li>
-									Locate the <strong>Transfer Credits</strong> section at the top of the main page.
-								</li>
-								<li>
-									Click the <strong>"Add Transfer"</strong> button to create a new row.
-								</li>
-								<li>
-									Enter the <strong>School Name</strong> (e.g., "State College").
-								</li>
-								<li>
-									Enter the total <strong>Credits Transferred</strong> (e.g., "12.00").
-								</li>
-								<li>
-									To remove a transfer record, click the <span className="text-red-500 font-bold">Trash Icon</span> next to that row.
-								</li>
-							</ol>
-						</div>
+					<div className="p-5 bg-gray-50 rounded-xl border border-gray-200">
+						<h4 className="font-bold text-gray-800 mb-2">Workflow</h4>
+						<ol className="list-decimal pl-5 space-y-2 text-sm text-gray-600">
+							<li>Locate the <strong>Transfer Credits</strong> section at the very top of the calculator.</li>
+							<li>Click <strong>"Add Transfer"</strong> to create a record (e.g., "State College", 12.0 credits).</li>
+							<li>These totals will appear in the "Transcript Statistics" summary at the bottom of the page.</li>
+						</ol>
 					</div>
 				</div>
 			),
@@ -130,49 +176,75 @@ function TrainingModule({ onBack }) {
 			id: "grades",
 			title: "3. Grading Scale",
 			content: (
-				<div className="space-y-4">
-					<h3 className="text-xl font-bold text-gray-800">
-						Special Grades
-					</h3>
-					<table className="min-w-full text-sm border border-gray-200">
-						<thead className="bg-gray-100">
-							<tr>
-								<th className="p-2 text-left border-r">Grade</th>
-								<th className="p-2 text-left border-r">Points</th>
-								<th className="p-2 text-left">Impact</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr className="border-b">
-								<td className="p-2 border-r font-bold">A - E</td>
-								<td className="p-2 border-r">4.0 - 0.0</td>
-								<td className="p-2">
-									Standard calculation. <strong>E</strong> is a failing grade (0.0 points), equivalent to F.
-								</td>
-							</tr>
-							<tr className="border-b">
-								<td className="p-2 border-r font-bold">F</td>
-								<td className="p-2 border-r">0.0</td>
-								<td className="p-2">
-									Failing grade. Counts in Attempted and GPA.
-								</td>
-							</tr>
-							<tr className="border-b">
-								<td className="p-2 border-r font-bold">UW</td>
-								<td className="p-2 border-r">0.0</td>
-								<td className="p-2">
-									<strong>Unofficial Withdrawal.</strong> Treated exactly like an F (0.0 points). Counts in Attempted and GPA.
-								</td>
-							</tr>
-							<tr className="border-b">
-								<td className="p-2 border-r font-bold">W</td>
-								<td className="p-2 border-r">N/A</td>
-								<td className="p-2">
-									Excluded from GPA and Earned Credits. Counts towards <strong>Attempted</strong> credits.
-								</td>
-							</tr>
-						</tbody>
-					</table>
+				<div className="space-y-6">
+					<div>
+						<h3 className="text-2xl font-bold text-gray-800 mb-3">
+							Institutional Grading Scale
+						</h3>
+						<p className="text-gray-700 leading-relaxed">
+							The system uses a standard 4.0 scale. Understanding the point value of each letter grade is crucial for manual verification.
+						</p>
+					</div>
+
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+						<div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+							<div className="bg-indigo-50 px-6 py-3 border-b border-indigo-100">
+								<h4 className="font-bold text-indigo-900 text-sm uppercase tracking-wide">Standard Grades</h4>
+							</div>
+							<table className="min-w-full text-sm">
+								<thead className="bg-gray-50">
+									<tr>
+										<th className="px-6 py-3 text-left font-medium text-gray-500">One Credit of</th>
+										<th className="px-6 py-3 text-right font-medium text-gray-500">Equals Grade Points</th>
+									</tr>
+								</thead>
+								<tbody className="divide-y divide-gray-100">
+									{[
+										{ g: "A", p: "4.0" }, { g: "A-", p: "3.7" },
+										{ g: "B+", p: "3.4" }, { g: "B", p: "3.0" }, { g: "B-", p: "2.7" },
+										{ g: "C+", p: "2.4" }, { g: "C", p: "2.0" }, { g: "C-", p: "1.7" },
+										{ g: "D+", p: "1.4" }, { g: "D", p: "1.0" }, { g: "D-", p: "0.7" },
+										{ g: "E", p: "0.0" }, { g: "F", p: "0.0" }, { g: "UW", p: "0.0" }
+									].map((row, i) => (
+										<tr key={i} className="hover:bg-gray-50 transition-colors">
+											<td className="px-6 py-2 font-bold text-gray-800">{row.g}</td>
+											<td className="px-6 py-2 text-right text-gray-600 font-mono">{row.p}</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+
+						<div className="space-y-6">
+							<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+								<h4 className="font-bold text-red-600 mb-2">Failing Grades</h4>
+								<ul className="space-y-3 text-sm text-gray-600">
+									<li>
+										<strong className="text-gray-900">E / F:</strong> 
+										<span className="block mt-1">Both count as 0.0 grade points. They are included in "Attempted Credits" and negatively impact GPA.</span>
+									</li>
+									<li>
+										<strong className="text-gray-900">UW (Unofficial Withdrawal):</strong>
+										<span className="block mt-1">Treated exactly like an F (0.0). It signifies the student stopped attending but did not officially withdraw.</span>
+									</li>
+								</ul>
+							</div>
+
+							<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+								<h4 className="font-bold text-gray-600 mb-2">Non-Punitive Grades</h4>
+								<ul className="space-y-3 text-sm text-gray-600">
+									<li>
+										<strong className="text-gray-900">W (Official Withdrawal):</strong>
+										<span className="block mt-1">Has <strong>no impact</strong> on GPA. It does not earn credits, but it is recorded on the transcript as an attempt.</span>
+									</li>
+									<li>
+										<strong className="text-gray-900">Empty Grade:</strong>
+										<span className="block mt-1">Treated identically to a 'W' until a grade is assigned.</span>
+									</li>
+								</ul>
+							</div>
+						</div>
+					</div>
 				</div>
 			),
 		},
@@ -180,45 +252,74 @@ function TrainingModule({ onBack }) {
 			id: "retakes",
 			title: "4. Retake Logic",
 			content: (
-				<div className="space-y-4">
-					<h3 className="text-xl font-bold text-gray-800">
-						How Retakes Work
-					</h3>
-					<p className="text-gray-700">
-						The system prioritizes the <strong>Best Grade</strong> for GPA calculations. Lower grades for the same course are excluded from the Cumulative GPA (marked with orange <code>**</code>).
-					</p>
-					
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-						<div className="border p-4 rounded-lg">
-							<h4 className="font-bold text-indigo-600 mb-2">Automatic Linking</h4>
-							<p className="text-sm text-gray-600">
-								Courses with the <strong>exact same name</strong> (case-insensitive) are automatically linked.
-							</p>
-							<p className="text-xs text-gray-500 mt-2">Example: "Math 101" and "MATH 101" are treated as the same course.</p>
-						</div>
-						<div className="border p-4 rounded-lg">
-							<h4 className="font-bold text-indigo-600 mb-2">Manual Linking</h4>
-							<p className="text-sm text-gray-600 mb-2">
-								Use this when course names differ (e.g., "Math 101" vs "Math 200").
-							</p>
-							<ol className="list-decimal pl-5 space-y-1 text-sm text-gray-600">
-								<li>Click the <strong>menu icon (three dots)</strong> on the retake course row.</li>
-								<li>Select <strong>"Retake Of..."</strong> from the menu.</li>
-								<li>A second menu appears: Select the <strong>Term</strong> where the original course exists.</li>
-								<li>Select the <strong>Original Course</strong> from that term's list.</li>
-							</ol>
-						</div>
-					</div>
-
-					<div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mt-2">
-						<h4 className="font-semibold text-gray-800 mb-1">Clearing a Retake Link</h4>
-						<p className="text-sm text-gray-700">
-							To remove a manual link: Click the menu icon on the course again and select <strong>"Clear Retake Link"</strong>. The course will revert to being treated independently (unless it matches another course by name).
+				<div className="space-y-8">
+					<div>
+						<h3 className="text-2xl font-bold text-gray-800 mb-3">
+							Retake Policy Engine
+						</h3>
+						<p className="text-gray-700 leading-relaxed">
+							The most powerful feature of this calculator is its ability to automatically handle course retakes according to the "Best Grade" policy. When a course is repeated, only the highest grade is calculated into the Cumulative GPA.
 						</p>
 					</div>
 
-					<div className="bg-orange-50 p-3 rounded text-sm text-orange-800 border border-orange-200">
-						<strong>Note on W:</strong> Retake logic also visually links courses with 'W' grades, showing the <code>**</code> indicator, but 'W' never replaces a valid grade.
+					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+						{/* Card 1: Visual Indicators */}
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm lg:col-span-1">
+							<h4 className="font-bold text-indigo-700 mb-4">Visual Indicators</h4>
+							<div className="flex items-center gap-3 mb-4">
+								<span className="text-2xl font-black text-orange-500">**</span>
+								<p className="text-sm text-gray-600">The <strong>exclusion marker</strong>.</p>
+							</div>
+							<p className="text-sm text-gray-600 leading-relaxed">
+								Any course marked with <span className="font-bold text-orange-500">**</span> is currently <strong>excluded</strong> from the Cumulative GPA calculation because a better (or equal but later) grade exists for the same course.
+							</p>
+						</div>
+
+						{/* Card 2: Logic Breakdown */}
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm lg:col-span-2">
+							<h4 className="font-bold text-indigo-700 mb-4">How it Works</h4>
+							<div className="space-y-4 text-sm text-gray-600">
+								<div className="flex gap-3">
+									<div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs shrink-0">1</div>
+									<p>The system groups all courses that share the same <strong>Name</strong> (e.g., "MATH 101").</p>
+								</div>
+								<div className="flex gap-3">
+									<div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs shrink-0">2</div>
+									<p>It compares the grade points (0.0 - 4.0) of all attempts.</p>
+								</div>
+								<div className="flex gap-3">
+									<div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs shrink-0">3</div>
+									<p>The <strong>Highest Grade</strong> is kept. All other attempts are excluded from GPA but remain as "Attempted Credits".</p>
+								</div>
+								<div className="flex gap-3">
+									<div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs shrink-0">4</div>
+									<p>If grades are equal, the <strong>Latest Attempt</strong> is usually favored for the active record.</p>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
+						<h4 className="font-bold text-indigo-900 mb-4">Linking Methods</h4>
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+							<div>
+								<h5 className="font-bold text-gray-800 mb-2">Method A: Automatic</h5>
+								<p className="text-sm text-gray-600 mb-2">Happens when course names match exactly (case-insensitive).</p>
+								<div className="bg-white p-3 rounded border border-gray-200 text-xs font-mono text-gray-500">
+									Term 1: MATH 101 (D)<br/>
+									Term 2: MATH 101 (B) <span className="text-green-600">← Linked!</span>
+								</div>
+							</div>
+							<div>
+								<h5 className="font-bold text-gray-800 mb-2">Method B: Manual</h5>
+								<p className="text-sm text-gray-600 mb-2">Used when names differ (e.g., renumbering).</p>
+								<div className="bg-white p-3 rounded border border-gray-200 text-xs font-mono text-gray-500">
+									Term 1: MATH 101 (F)<br/>
+									Term 2: MATH 200 (A) <span className="text-indigo-600">← Manually Linked</span>
+								</div>
+								<p className="text-xs text-gray-500 mt-2 italic">Use the 3-dot menu on a course row to manually link it to a previous attempt.</p>
+							</div>
+						</div>
 					</div>
 				</div>
 			),
@@ -227,36 +328,44 @@ function TrainingModule({ onBack }) {
 			id: "equivalences",
 			title: "5. Equivalences",
 			content: (
-				<div className="space-y-4">
-					<h3 className="text-xl font-bold text-gray-800">
-						Course Equivalences
-					</h3>
-					<p className="text-gray-700">
-						The <strong>Equivalences</strong> feature allows you to define global rules for courses that should be considered identical, even if they have different names.
-					</p>
-					
-					<div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
-						<h4 className="font-semibold text-purple-800 mb-2">When to use:</h4>
-						<p className="text-sm text-purple-700">
-							Use this when a course is equivalent to another course (e.g., <strong>MATH 101</strong> equivalent to <strong>MATH 100</strong>) and you want the system to <em>always</em> treat them as the same course for retake purposes, without manually linking every single instance.
+				<div className="space-y-6">
+					<div>
+						<h3 className="text-2xl font-bold text-gray-800 mb-3">
+							Global Course Equivalences
+						</h3>
+						<p className="text-gray-700 leading-relaxed">
+							While Manual Linking is good for one-off corrections, <strong>Equivalences</strong> allow you to set global rules. This is essential for handling curriculum changes where a course code has changed permanently (e.g., "CS 101" becomes "COMP 101").
 						</p>
 					</div>
 
-					<div className="border p-4 rounded-lg bg-white mt-4">
-						<h4 className="font-bold text-gray-800 mb-2">How to Set Up:</h4>
-						<ol className="list-decimal pl-5 space-y-2 text-sm text-gray-600">
-							<li>
-								Click the <strong>"Equivalences"</strong> button in the top header.
-							</li>
-							<li>
-								In the modal, enter the two course names (e.g., <strong>Course A:</strong> MATH101, <strong>Course B:</strong> MATH100).
-							</li>
-							<li>
-								Click <strong>Add</strong>. The pair will appear in the list below.
-							</li>
-							<li>
-								<strong>Result:</strong> Now, if you have MATH 101 (Grade: F) and MATH 100 (Grade: A) anywhere in your transcript, the system will automatically apply the retake logic (excluding the F).
-							</li>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+							<h4 className="font-bold text-gray-800 mb-3">The Problem</h4>
+							<p className="text-sm text-gray-600 mb-4">
+								A student took <strong>CS 101</strong> in 2020 and failed. In 2022, the department renamed the course to <strong>COMP 101</strong>. The student retakes it and gets an 'A'.
+							</p>
+							<p className="text-sm text-gray-600">
+								By default, the system sees these as two different courses. Both grades would count, hurting the student's GPA.
+							</p>
+						</div>
+
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+							<h4 className="font-bold text-green-700 mb-3">The Solution</h4>
+							<p className="text-sm text-gray-600 mb-4">
+								Define an Equivalence: <span className="font-mono bg-gray-100 px-1 rounded">CS 101 = COMP 101</span>.
+							</p>
+							<p className="text-sm text-gray-600">
+								Now, the system treats every instance of "CS 101" and "COMP 101" as the same entity. The 'F' from 2020 will be automatically excluded by the 'A' from 2022.
+							</p>
+						</div>
+					</div>
+
+					<div className="bg-purple-50 p-6 rounded-xl border border-purple-100">
+						<h4 className="font-bold text-purple-900 mb-2">How to Configure</h4>
+						<ol className="list-decimal pl-5 space-y-2 text-sm text-purple-800">
+							<li>Click the <strong>"Equivalences"</strong> button in the main header (top right).</li>
+							<li>In the modal, type the two course codes you want to link.</li>
+							<li>Click <strong>Add</strong>. The rule is now active for the entire transcript.</li>
 						</ol>
 					</div>
 				</div>
@@ -267,25 +376,38 @@ function TrainingModule({ onBack }) {
 			title: "Knowledge Check",
 			content: (
 				<div className="space-y-6">
-					<h3 className="text-xl font-bold text-gray-800">
-						Test Your Knowledge
-					</h3>
-					<Quiz />
+					<div>
+						<h3 className="text-2xl font-bold text-gray-800 mb-2">
+							Final Assessment
+						</h3>
+						<p className="text-gray-600">
+							Verify your understanding of the GPA Calculator system.
+						</p>
+					</div>
+					<div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+						<Quiz />
+					</div>
 				</div>
 			),
 		},
 	];
 
 	return (
-		<div className="max-w-4xl mx-auto px-4 py-8">
-			{/* Header Navigation */}
-			<div className="mb-6">
+		<div className="fixed inset-0 z-50 flex flex-col h-screen bg-gray-50">
+			{/* Header */}
+			<div className="bg-indigo-700 px-6 py-4 text-white shrink-0 shadow-md flex justify-between items-center">
+				<div>
+					<h2 className="text-2xl font-black">System Training Module</h2>
+					<p className="text-indigo-200 text-sm">
+						Comprehensive guide to the GPA Calculator System v2.0
+					</p>
+				</div>
 				<button
 					onClick={onBack}
-					className="flex items-center text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+					className="flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-medium transition-colors border border-indigo-500 shadow-sm"
 				>
 					<svg
-						className="w-5 h-5 mr-1"
+						className="w-5 h-5 mr-2"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -301,38 +423,30 @@ function TrainingModule({ onBack }) {
 				</button>
 			</div>
 
-			<div className="bg-white rounded-2xl shadow-xl overflow-hidden ring-1 ring-gray-200">
-				{/* Header */}
-				<div className="bg-indigo-700 px-8 py-8 text-white">
-					<h2 className="text-3xl font-black mb-2">System Training Module</h2>
-					<p className="text-indigo-100">
-						Comprehensive guide to the GPA Calculator System v2.0
-					</p>
-				</div>
+			<div className="flex flex-1 overflow-hidden">
+				{/* Sidebar Navigation */}
+				<nav className="w-64 bg-white border-r border-gray-200 flex-shrink-0 overflow-y-auto">
+					<ul className="p-4 space-y-1">
+						{modules.map((m) => (
+							<li key={m.id}>
+								<button
+									onClick={() => setActiveTab(m.id)}
+									className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+										activeTab === m.id
+											? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+											: "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+									}`}
+								>
+									{m.title}
+								</button>
+							</li>
+						))}
+					</ul>
+				</nav>
 
-				<div className="flex flex-col md:flex-row h-[600px]">
-					{/* Sidebar Navigation */}
-					<nav className="w-full md:w-64 bg-gray-50 border-r border-gray-200 p-4 shrink-0">
-						<ul className="space-y-1">
-							{modules.map((m) => (
-								<li key={m.id}>
-									<button
-										onClick={() => setActiveTab(m.id)}
-										className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-											activeTab === m.id
-												? "bg-white text-indigo-700 shadow-sm ring-1 ring-gray-200"
-												: "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-										}`}
-									>
-										{m.title}
-									</button>
-								</li>
-							))}
-						</ul>
-					</nav>
-
-					{/* Content Area - Scrollable */}
-					<div className="flex-1 p-8 overflow-y-auto">
+				{/* Content Area - Scrollable */}
+				<div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+					<div className="min-h-full">
 						{modules.find((m) => m.id === activeTab)?.content}
 					</div>
 				</div>
