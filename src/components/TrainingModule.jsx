@@ -68,7 +68,7 @@ function TrainingModule({ onBack }) {
 						<h4 className="font-semibold text-yellow-800 mb-2">Default Grade</h4>
 						<p className="text-sm text-yellow-700">
 							Newly created courses default to <strong>"Select Grade"</strong> (empty). 
-							You must select a valid letter grade for calculations to run.
+							If left empty, the course is excluded from GPA calculations (treated like a 'W').
 						</p>
 					</div>
 				</div>

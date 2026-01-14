@@ -10,6 +10,7 @@ function CourseRow({
 	updateCourse,
 	setRetake,
 	clearRetake,
+	isDuplicate,
 }) {
 	const [showMenu, setShowMenu] = useState(false);
 
@@ -57,11 +58,33 @@ function CourseRow({
 						type="text"
 						value={row.name || ""}
 						onChange={(e) => handleUpdate("name", e.target.value)}
-						className={inputClass}
+						className={`${inputClass} ${
+							isDuplicate ? "border-red-500 focus:ring-red-500" : ""
+						}`}
 						placeholder="Course name"
 						style={{ textTransform: "uppercase" }}
 					/>
-					{hasRetakeRelationship && (
+					{isDuplicate && (
+						<span
+							className="text-red-500 flex-shrink-0"
+							title="Duplicate course in this term"
+						>
+							<svg
+								className="w-5 h-5"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+						</span>
+					)}
+					{hasRetakeRelationship && !isDuplicate && (
 						<span
 							className="text-orange-500 font-bold text-lg flex-shrink-0"
 							title={

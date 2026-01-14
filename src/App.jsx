@@ -6,6 +6,17 @@ import TranscriptStats from "./components/TranscriptStats";
 import TransferCredits from "./components/TransferCredits";
 import TrainingModule from "./components/TrainingModule";
 import EquivalencesModal from "./components/EquivalencesModal";
+import SessionManager from "./components/SessionManager";
+import {
+	getSessionIndex,
+	saveSessionIndex,
+	loadSessionData,
+	saveSessionData,
+	createNewSession,
+	deleteSession,
+	renameSession,
+	migrateLegacyData,
+} from "./utils/sessionManager";
 import {
 	SCALE,
 	fmt,
@@ -24,16 +35,21 @@ function App() {
 		const [isAnyModalOpen, setIsAnyModalOpen] = useState(false); // New state for modal control
 			const [currentView, setCurrentView] = useState("calculator"); // 'calculator' | 'training'
 			const [runTour, setRunTour] = useState(false);
-			const [stepIndex, setStepIndex] = useState(0);
-			const [equivalences, setEquivalences] = useState([]);
-			const [showEquivalences, setShowEquivalences] = useState(false);
-		
-			// Refs to track previous counts for tour logic
-			const prevTransfersLength = useRef(0);
-			const prevTermsLength = useRef(0);
-			const prevFirstTermRowsLength = useRef(0);
-			
-				const tourSteps = [		{
+				const [stepIndex, setStepIndex] = useState(0);
+				const [equivalences, setEquivalences] = useState([]);
+				const [showEquivalences, setShowEquivalences] = useState(false);
+				
+				// Session Management State
+				const [sessions, setSessions] = useState([]);
+					const [activeSessionId, setActiveSessionId] = useState(null);
+					const [isSessionManagerOpen, setIsSessionManagerOpen] = useState(false);
+				
+					// Refs to track previous counts for tour logic
+					const prevTransfersLength = useRef(0);
+					const prevTermsLength = useRef(0);
+					const prevFirstTermRowsLength = useRef(0);
+					
+					const tourSteps = [		{
 			target: "body",
 			content: (
 				<div>
@@ -214,29 +230,57 @@ function App() {
 		};
 	}, [isAnyModalOpen]);
 
-	// Load from localStorage on mount
+	// Initialize Sessions on mount
 	useEffect(() => {
-		const saved = localStorage.getItem(STORAGE_KEY);
-		if (saved) {
-			try {
-				const state = JSON.parse(saved);
-				setNextRowId(state.nextRowId || 1);
-				setTransferEarned(state.transferEarned || 0);
-				setTransfers(state.transfers || []);
-				setTerms(state.terms || []);
-				setEquivalences(state.equivalences || []);
-			} catch (e) {
-				debugError("Failed to restore state", e);
-				seedDefaultTerms();
+		let index = getSessionIndex();
+		
+		// Migration Check
+		if (index.length === 0) {
+			const migratedId = migrateLegacyData(STORAGE_KEY);
+			if (migratedId) {
+				index = getSessionIndex(); // Reload after migration
+			} else {
+				// No legacy data, create fresh default
+				createNewSession("Untitled Transcript");
+				index = getSessionIndex();
 			}
-		} else {
-			seedDefaultTerms();
+		}
+
+		setSessions(index);
+		
+		// Load the most recent or first session
+		if (index.length > 0) {
+			// Sort by lastModified desc if possible, or just pick first
+			// The index array structure is simple, usually append-only, but we updated lastModified on rename/create
+			// Let's just pick the first one for simplicity or the one last used if we tracked it (we don't yet)
+			const sessionToLoad = index[0];
+			setActiveSessionId(sessionToLoad.id);
+			
+			const data = loadSessionData(sessionToLoad.id);
+			if (data) {
+				restoreState(data);
+			} else {
+				seedDefaultTerms(); // Fallback
+			}
 		}
 	}, []);
 
-	// Save to localStorage whenever state changes
+	const restoreState = (data) => {
+		setNextRowId(data.nextRowId || 1);
+		setTransferEarned(data.transferEarned || 0);
+		setTransfers(data.transfers || []);
+		// Ensure isHighlighted is preserved or defaulted
+		const restoredTerms = (data.terms || []).map(t => ({
+			...t,
+			isHighlighted: t.isHighlighted || false
+		}));
+		setTerms(restoredTerms);
+		setEquivalences(data.equivalences || []);
+	};
+
+	// Save to active session whenever state changes
 	useEffect(() => {
-		if (terms.length > 0) {
+		if (activeSessionId && terms.length > 0) {
 			const state = {
 				nextRowId,
 				transferEarned,
@@ -244,9 +288,53 @@ function App() {
 				terms,
 				equivalences,
 			};
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+			saveSessionData(activeSessionId, state);
 		}
-	}, [nextRowId, transferEarned, transfers, terms, equivalences]);
+	}, [activeSessionId, nextRowId, transferEarned, transfers, terms, equivalences]);
+
+	// Session Handlers
+	const handleSwitchSession = (sessionId) => {
+		// Save current before switching (already handled by useEffect largely, but ensure safety)
+		// Load new
+		const data = loadSessionData(sessionId);
+		if (data) {
+			setActiveSessionId(sessionId);
+			restoreState(data);
+			setIsSessionManagerOpen(false);
+		}
+	};
+
+	const handleCreateSession = () => {
+		const newSession = createNewSession(`Transcript ${sessions.length + 1}`);
+		setSessions(getSessionIndex());
+		setActiveSessionId(newSession.id);
+		
+		// Reset State for new session
+		setTransferEarned(0);
+		setTransfers([]);
+		setEquivalences([]);
+		setNextRowId(1);
+		seedDefaultTerms(); // This sets 'terms' state directly
+		setIsSessionManagerOpen(false);
+	};
+
+	const handleRenameSession = (id, newName) => {
+		const updatedIndex = renameSession(id, newName);
+		setSessions(updatedIndex);
+	};
+
+	const handleDeleteSession = (id) => {
+		const updatedIndex = deleteSession(id);
+		setSessions(updatedIndex);
+		// If deleted active session, switch to another or create new
+		if (id === activeSessionId) {
+			if (updatedIndex.length > 0) {
+				handleSwitchSession(updatedIndex[0].id);
+			} else {
+				handleCreateSession(); // Create fresh if all deleted
+			}
+		}
+	};
 
 	const seedDefaultTerms = () => {
 		const defaultTerms = [];
@@ -496,11 +584,23 @@ function App() {
 					onClose={() => setShowEquivalences(false)}
 				/>
 			)}
+			<SessionManager
+				isOpen={isSessionManagerOpen}
+				onClose={() => setIsSessionManagerOpen(false)}
+				sessions={sessions}
+				activeSessionId={activeSessionId}
+				onSwitchSession={handleSwitchSession}
+				onCreateSession={handleCreateSession}
+				onRenameSession={handleRenameSession}
+				onDeleteSession={handleDeleteSession}
+			/>
 			<Header 
 				clearAll={clearAll} 
 				onNavigateTraining={() => setCurrentView("training")}
 				onStartTour={() => { setRunTour(true); setStepIndex(0); }}
 				onOpenEquivalences={() => setShowEquivalences(true)}
+				onOpenSessions={() => setIsSessionManagerOpen(true)}
+				activeSessionName={sessions.find(s => s.id === activeSessionId)?.name}
 			/>
 
 			<main className="max-w-6xl mx-auto px-4 sm:px-6 pb-24">

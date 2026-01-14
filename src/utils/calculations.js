@@ -35,6 +35,7 @@ export const SCALE = {
 		F: 0.0,
 		UW: 0.0,
 		W: null,
+		"": null,
 	},
 };
 

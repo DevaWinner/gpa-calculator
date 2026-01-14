@@ -34,6 +34,15 @@ function TermCard({
 	const termData = termCalc(term, excludeMap);
 	const cumData = computeCumMetrics(terms, term.termIndex, excludeMap);
 
+	// Detect duplicates within this term
+	const nameCounts = {};
+	termData.rows.forEach((r) => {
+		const name = r.name ? r.name.toUpperCase() : "";
+		if (name) {
+			nameCounts[name] = (nameCounts[name] || 0) + 1;
+		}
+	});
+
 	// Prepare data for the modal based on active type
 	const getModalData = () => {
 		if (activeModal === "term") {
@@ -45,7 +54,7 @@ function TermCard({
 			const rows = termData.rows
 				.filter(r => r.name && r.name.trim() !== "" && (parseFloat(r.units) || 0) > 0)
 				.map((r) => {
-					const isW = r.grade === "W";
+					const isW = r.grade === "W" || r.grade === "";
 					const qp = r.q;
 					return {
 						name: r.name,
@@ -53,7 +62,7 @@ function TermCard({
 						units: r.units,
 						q: qp,
 						excluded: isW,
-						reason: isW ? "W Grade" : "",
+						reason: isW ? (r.grade === "W" ? "W Grade" : "No Grade") : "",
 					};
 				});
 			// GPA Denom for term = Attempted - W
@@ -61,7 +70,7 @@ function TermCard({
 			// We need w_credits to display GPA Denom accurately.
 			// Let's re-sum W from rows for display purposes
 			const wCreds = termData.rows.reduce(
-				(sum, r) => (r.grade === "W" ? sum + (parseFloat(r.units) || 0) : sum),
+				(sum, r) => (r.grade === "W" || r.grade === "" ? sum + (parseFloat(r.units) || 0) : sum),
 				0
 			);
 
@@ -122,7 +131,7 @@ function TermCard({
 									}
 			
 									const units = parseFloat(r.units) || 0;
-									const isW = r.grade === "W";
+									const isW = r.grade === "W" || r.grade === "";
 									const map = SCALE.points;
 									const gRaw = map[r.grade];
 									const gVal = gRaw === null ? null : gRaw ?? 0;
@@ -137,7 +146,7 @@ function TermCard({
 
 					if (isW) {
 						excluded = true;
-						reason = "W Grade";
+						reason = r.grade === "W" ? "W Grade" : "No Grade";
 						cumW += units;
 					} else {
 						// Check retake exclusion
@@ -305,6 +314,9 @@ function TermCard({
 								updateCourse={updateCourse}
 								setRetake={setRetake}
 								clearRetake={clearRetake}
+								isDuplicate={
+									row.name && nameCounts[row.name.toUpperCase()] > 1
+								}
 							/>
 						))}
 					</tbody>
