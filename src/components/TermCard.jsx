@@ -23,6 +23,7 @@ function TermCard({
 	insertTermAfter, // New prop
 }) {
 	const [activeModal, setActiveModal] = useState(null); // 'term' | 'cum' | null
+	const [isHighlighted, setIsHighlighted] = useState(false);
 
 	// Effect to inform parent when modal state changes
 	useEffect(() => {
@@ -187,7 +188,11 @@ function TermCard({
 	const modalData = activeModal ? getModalData() : null;
 
 	return (
-		<div className="term bg-white rounded-2xl shadow-sm ring-1 ring-gray-300 overflow-hidden">
+		<div
+			className={`term bg-white rounded-2xl shadow-sm ring-1 ring-gray-300 overflow-hidden transition-all duration-300 ${
+				isHighlighted ? "ring-2 ring-yellow-400 bg-yellow-50" : ""
+			}`}
+		>
 			<div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 tour-term-header">
 				<div className="flex items-baseline gap-3">
 					<h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -201,6 +206,29 @@ function TermCard({
 					</h2>
 				</div>
 				<div className="flex items-center gap-1">
+					<button
+						onClick={() => setIsHighlighted(!isHighlighted)}
+						className={`p-2 transition-colors ${
+							isHighlighted
+								? "text-yellow-500 hover:text-yellow-600"
+								: "text-gray-400 hover:text-yellow-500"
+						}`}
+						title={isHighlighted ? "Remove Highlight" : "Highlight Term"}
+					>
+						<svg
+							className="w-5 h-5"
+							fill={isHighlighted ? "currentColor" : "none"}
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth="2"
+								d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+							></path>
+						</svg>
+					</button>
 					<button
 						onClick={() => insertTermAfter(term.termIndex)}
 						className="p-2 text-green-600 hover:text-green-800 transition-colors tour-insert-term-btn"
