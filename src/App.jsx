@@ -668,7 +668,7 @@ function App() {
 					/>
 
 					{/* Add Term Button */}
-					<div className="mt-10 flex justify-center btn-add-term pb-10">
+					<div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-30">
 						<button
 							onClick={addTerm}
 							className="p-3 rounded-2xl bg-green-600 hover:bg-green-700 text-white shadow-lg transition-transform hover:scale-105"
