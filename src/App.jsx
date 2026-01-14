@@ -327,7 +327,7 @@ function App() {
 		setTransfers([]);
 		setEquivalences([]);
 		setNextRowId(1);
-		seedDefaultTerms(); // This sets 'terms' state directly
+		seedDefaultTerms(1); // This sets 'terms' state directly
 		// setIsSessionManagerOpen(false); // Kept open per user request
 	};
 
@@ -349,7 +349,7 @@ function App() {
 		}
 	};
 
-	const seedDefaultTerms = () => {
+	const seedDefaultTerms = (startId = 1) => {
 		const defaultTerms = [];
 		for (let i = 1; i <= 3; i++) {
 			defaultTerms.push({
@@ -358,7 +358,7 @@ function App() {
 				isHighlighted: false,
 				rows: [
 					{
-						id: String(nextRowId + i - 1),
+						id: String(startId + i - 1),
 						name: "",
 						units: 0,
 						grade: "", // Changed from "W" to ""
@@ -368,7 +368,7 @@ function App() {
 			});
 		}
 		setTerms(defaultTerms);
-		setNextRowId(nextRowId + 3);
+		setNextRowId(startId + 3);
 	};
 
 	const addTerm = () => {
@@ -433,12 +433,23 @@ function App() {
 	};
 
 	const removeTerm = (termIndex) => {
+		// Identify the term to remove and its row IDs
+		const termToRemove = terms.find(t => t.termIndex === termIndex);
+		const removedRowIds = new Set(termToRemove ? termToRemove.rows.map(r => r.id) : []);
+
 		const newTerms = terms
 			.filter((t) => t.termIndex !== termIndex)
 			.map((t, i) => ({
 				...t,
 				termIndex: i + 1,
 				name: t.name || `Term ${i + 1}`,
+				rows: t.rows.map(r => {
+					// Clean up retake references to deleted rows
+					if (r.retakeOf && removedRowIds.has(r.retakeOf)) {
+						return { ...r, retakeOf: null };
+					}
+					return r;
+				})
 			}));
 		setTerms(newTerms);
 		localStorage.removeItem(STORAGE_KEY);
@@ -550,7 +561,7 @@ function App() {
 		setTransfers([]);
 		setNextRowId(1);
 		setEquivalences([]);
-		seedDefaultTerms();
+		seedDefaultTerms(1);
 	};
 
 	// Calculate statistics

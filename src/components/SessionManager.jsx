@@ -58,7 +58,7 @@ function SessionManager({
 
     const formatDate = (timestamp) => {
         return new Date(timestamp).toLocaleDateString(undefined, {
-            month: 'short', day: 'numeric'
+            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
         });
     };
 
