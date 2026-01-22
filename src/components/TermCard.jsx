@@ -32,7 +32,14 @@ function TermCard({
 
 
 	const termData = termCalc(term, excludeMap);
-	const cumData = computeCumMetrics(terms, term.termIndex, excludeMap);
+	// Calculate filled courses count
+	const filledCount = termData.rows.filter(
+		(r) =>
+			r.name &&
+			r.name.trim() !== "" &&
+			(parseFloat(r.units) || 0) > 0 &&
+			r.grade !== ""
+	).length;
 
 	// Detect duplicates within this term
 	const nameCounts = {};
@@ -212,6 +219,9 @@ function TermCard({
 							className="bg-transparent border-none outline-none focus:bg-white focus:border focus:border-gray-300 focus:rounded px-2 py-1 min-w-[100px]"
 							placeholder={`Term ${term.termIndex}`}
 						/>
+						<span className="text-xs font-medium text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full ml-2">
+							{filledCount} / {termData.rows.length}
+						</span>
 					</h2>
 				</div>
 				<div className="flex items-center gap-1">
