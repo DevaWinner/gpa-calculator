@@ -8,7 +8,8 @@ function SessionManager({
     onSwitchSession, 
     onCreateSession, 
     onRenameSession, 
-    onDeleteSession 
+    onDeleteSession,
+    onOpenImport
 }) {
     const [editingId, setEditingId] = useState(null);
     const [editName, setEditName] = useState("");
@@ -165,17 +166,23 @@ function SessionManager({
                     ))}
                 </div>
 
-                {/* Footer */}
-                <div className="p-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
-                    <button 
-                        onClick={onCreateSession}
-                        className="w-full flex items-center justify-center gap-2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-sm transition-all text-sm"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                        New Transcript
-                    </button>
-                </div>
-            </div>
+                            {/* Footer */}
+                            <div className="p-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex gap-2">
+                                <button 
+                                    onClick={onOpenImport}
+                                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl font-semibold shadow-sm transition-all text-sm"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                    Import
+                                </button>
+                                <button 
+                                    onClick={onCreateSession}
+                                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-sm transition-all text-sm"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                                    New
+                                </button>
+                            </div>            </div>
         </div>
     );
 }

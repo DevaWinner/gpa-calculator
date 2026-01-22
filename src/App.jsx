@@ -6,6 +6,7 @@ import TranscriptStats from "./components/TranscriptStats";
 import TransferCredits from "./components/TransferCredits";
 import TrainingModule from "./components/TrainingModule";
 import EquivalencesModal from "./components/EquivalencesModal";
+import ImportModal from "./components/ImportModal";
 import SessionManager from "./components/SessionManager";
 import {
 	getSessionIndex,
@@ -44,6 +45,18 @@ function App() {
 					const [activeSessionId, setActiveSessionId] = useState(null);
 				
 						const [isSessionManagerOpen, setIsSessionManagerOpen] = useState(false);
+	const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+	// Import Handler
+	const handleImportData = (parsedData) => {
+		setTerms(parsedData.terms);
+		setNextRowId(parsedData.nextRowId);
+		// Reset other state? Maybe keep transfers if they exist or prompt user?
+		// For now, let's keep transfers as they are usually separate.
+		// If the CSV includes transfer terms, we might want to extract them separately?
+		// The parser puts them in `terms`. The user can manually move them if needed, or we improve parser later.
+		setIsSessionManagerOpen(false); // Close menu on successful import
+	};
 				
 					
 				
@@ -608,6 +621,12 @@ function App() {
 					onClose={() => setShowEquivalences(false)}
 				/>
 			)}
+			{isImportModalOpen && (
+				<ImportModal 
+					onClose={() => setIsImportModalOpen(false)} 
+					onImport={handleImportData} 
+				/>
+			)}
 
 			<SessionManager
 				isOpen={isSessionManagerOpen}
@@ -618,6 +637,7 @@ function App() {
 				onCreateSession={handleCreateSession}
 				onRenameSession={handleRenameSession}
 				onDeleteSession={handleDeleteSession}
+				onOpenImport={() => setIsImportModalOpen(true)}
 			/>
 
 			{/* Floating Toggle Button */}
