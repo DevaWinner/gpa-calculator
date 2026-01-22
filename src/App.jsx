@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import Joyride, { STATUS, EVENTS } from "react-joyride";
 import Header from "./components/Header";
 import TermCard from "./components/TermCard";
@@ -29,6 +30,9 @@ import { debugError } from "./utils/debug";
 const STORAGE_KEY = "gpa_state_v3";
 
 function App() {
+	const location = useLocation();
+	const isExperimental = location.pathname === "/experimental";
+
 	const [transferEarned, setTransferEarned] = useState(0);
 	const [transfers, setTransfers] = useState([]);
 	const [terms, setTerms] = useState([]);
@@ -638,6 +642,7 @@ function App() {
 				onRenameSession={handleRenameSession}
 				onDeleteSession={handleDeleteSession}
 				onOpenImport={() => setIsImportModalOpen(true)}
+				showImport={isExperimental}
 			/>
 
 			{/* Floating Toggle Button */}
