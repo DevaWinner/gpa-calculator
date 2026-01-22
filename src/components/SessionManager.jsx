@@ -77,10 +77,10 @@ function SessionManager({
             {/* Drawer */}
             <div 
                 ref={drawerRef}
-                className={`fixed left-6 bottom-24 w-72 h-[50vh] bg-white shadow-2xl rounded-2xl flex flex-col border border-gray-200 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-left ${drawerClasses}`}
+                className={`fixed left-6 bottom-24 w-72 h-[50vh] bg-white shadow-2xl rounded-2xl flex flex-col border border-gray-200 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-left ${drawerClasses}`}
             >
                 {/* Header */}
-                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50 rounded-t-2xl">
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                     <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Transcript Library</h3>
                     <button 
                         onClick={onClose}
@@ -167,9 +167,9 @@ function SessionManager({
                     ))}
                 </div>
 
-                                        {/* Footer */}
+                                                    {/* Footer */}
 
-                                        <div className="p-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex gap-2">
+                                                    <div className="p-3 border-t border-gray-100 bg-gray-50 flex gap-2">
 
                                             {showImport && (
 

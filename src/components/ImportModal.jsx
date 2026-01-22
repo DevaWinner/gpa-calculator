@@ -39,7 +39,7 @@ function ImportModal({ onClose, onImport }) {
 
     return (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h3 className="text-lg font-bold text-gray-800">Import Transcript</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -57,7 +57,11 @@ function ImportModal({ onClose, onImport }) {
                             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
                         />
                         <p className="text-xs text-gray-500 mt-2">
-                            Upload a CSV file exported from your student portal.
+                            Upload a CSV file exported from Anthology portal.
+                            <br />
+                            <span className="block mt-1">
+                                <strong>Instructions:</strong> Click on <strong>Export</strong> at the top of your transcript, then choose the <strong>CSV (Delimited by comma)</strong> option. Upload that file here.
+                            </span>
                         </p>
                     </div>
 
@@ -94,7 +98,7 @@ function ImportModal({ onClose, onImport }) {
                 </div>
 
                 <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-                    <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg text-sm font-medium">
+                    <button onClick={onClose} className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium text-sm shadow-sm transition-all">
                         Cancel
                     </button>
                     <button 
