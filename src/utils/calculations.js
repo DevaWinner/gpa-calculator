@@ -18,6 +18,7 @@ export const SCALE = {
 		"F",
 		"UW",
 		"W",
+		"P",
 	],
 	points: {
 		A: 4.0,
@@ -35,6 +36,7 @@ export const SCALE = {
 		F: 0.0,
 		UW: 0.0,
 		W: null,
+		P: null,
 		"": null,
 	},
 };
@@ -221,7 +223,7 @@ export const termCalc = (term, excludeInfo) => {
 	let attempted = 0,
 		earned = 0,
 		qp = 0,
-		w_credits = 0;
+		excluded_gpa_credits = 0;
 
 	const rowsWithCache = term.rows.map((r) => {
 		const units = parseFloat(r.units) || 0;
@@ -229,12 +231,12 @@ export const termCalc = (term, excludeInfo) => {
 		const gRaw = map[grade];
 		const gVal = gRaw === null ? null : gRaw ?? 0;
 
-		// Count ALL courses (including W) in attempted credits
+		// Count ALL courses (including W and P) in attempted credits
 		attempted = cleanFloat(attempted + units);
 
 		if (gVal === null) {
-			// Track W credits separately to remove from GPA denom later
-			w_credits = cleanFloat(w_credits + units);
+			// Track W, P, and empty grades separately to remove from GPA denom later
+			excluded_gpa_credits = cleanFloat(excluded_gpa_credits + units);
 		}
 
 		// Calculate quality points with proper rounding
@@ -246,7 +248,8 @@ export const termCalc = (term, excludeInfo) => {
 
 		// Earned credits:
 		// - Include passing grades (> 0)
-		if (gVal > 0) earned = cleanFloat(earned + units);
+		// - Include P grade
+		if (gVal > 0 || grade === 'P') earned = cleanFloat(earned + units);
 
 		// Mark exclusion info for cumulative calculations
 		const excludedFromCumStartingTerm =
@@ -264,8 +267,8 @@ export const termCalc = (term, excludeInfo) => {
 		};
 	});
 
-	// GPA denominator = attempted - W credits
-	const gpaDenom = cleanFloat(attempted - w_credits);
+	// GPA denominator = attempted - excluded_gpa_credits
+	const gpaDenom = cleanFloat(attempted - excluded_gpa_credits);
 	const gpa = gpaDenom > 0 ? cleanFloat(qp / gpaDenom) : 0;
 
 	return {
@@ -281,8 +284,8 @@ export const computeCumMetrics = (terms, upToTermIdx, excludeInfo) => {
 	let attempted = 0,
 		earned = 0,
 		qp = 0,
-		w_credits = 0,
-		excluded_credits = 0; // Track credits excluded from GPA calculation due to retakes
+		excluded_gpa_credits = 0, // W, P, empty
+		excluded_retake_credits = 0; // Track credits excluded from GPA calculation due to retakes
 
 	// For each retake group, determine which instance to use at this point in time
 	const bestAtThisPoint = {}; // groupID -> best rowId up to upToTermIdx
@@ -328,23 +331,50 @@ export const computeCumMetrics = (terms, upToTermIdx, excludeInfo) => {
 		for (const r of termData.rows) {
 			const units = parseFloat(r.units) || 0;
 
-			// Always add to attempted (including W)
+			// Always add to attempted (including W, P)
 			attempted = cleanFloat(attempted + units);
 
-			// Handle W grades - ignore for GPA/QP, but we already added to attempted
+			// Handle W, P, empty grades - ignore for GPA/QP, but we already added to attempted
 			if (r.gVal === null) {
-				w_credits = cleanFloat(w_credits + units);
+				excluded_gpa_credits = cleanFloat(excluded_gpa_credits + units);
+				
+				// Handle P grade earned credits specifically for cumulative
+				if (r.grade === 'P') {
+                    // Check if this P grade is excluded due to retake policy
+                    // If it is, we shouldn't count it as earned? 
+                    // Usually Pass/Fail courses follow retake logic too.
+                    // If I retake a P with an A, the A replaces the P?
+                    // P is null points. A is 4.0. A is better.
+                    // So yes, P can be replaced.
+                    // However, we need to check exclusion status.
+                    
+                    let isExcludedRetake = false;
+                    const chainInfo = excludeInfo.retakeChainInfo?.[r.id];
+                    if (chainInfo && chainInfo.groupId) {
+                        const groupId = chainInfo.groupId;
+                        const bestRowId = bestAtThisPoint[groupId];
+                        if (bestRowId && r.id !== bestRowId) {
+                            isExcludedRetake = true;
+                        }
+                    }
+
+                    if (!isExcludedRetake) {
+                        earned = cleanFloat(earned + units);
+                    } else {
+                        // If P is excluded by retake, we don't count it as earned? 
+                        // Typically yes, only one instance counts for credit.
+                        // Also need to track excluded_retake_credits?
+                        // Wait, excluded_retake_credits is used to subtract from gpaDenom.
+                        // P is ALREADY excluded from gpaDenom via excluded_gpa_credits.
+                        // So we don't need to add to excluded_retake_credits if it's P.
+                        // We just don't add to earned.
+                    }
+				}
 				continue;
 			}
 
 			// Check if this row is part of a retake group that needs exclusion
 			let shouldExcludeFromCum = false;
-			
-			// Use the group ID lookup from excludeInfo if available, or try to find it?
-			// excludeInfo.getGroupId is a function we returned.
-			// But wait, getGroupId relies on closure state which might not transfer well if state is serialized?
-			// Actually, retakeChainInfo has groupId!
-			// If the row is part of a chain, it will be in retakeChainInfo.
 			
 			const chainInfo = excludeInfo.retakeChainInfo?.[r.id];
 			if (chainInfo && chainInfo.groupId) {
@@ -362,7 +392,7 @@ export const computeCumMetrics = (terms, upToTermIdx, excludeInfo) => {
 			if (shouldExcludeFromCum) {
 				// If excluded due to retake policy, remove from attempted/QP
 				// We need to subtract this from GPA denominator.
-				excluded_credits = cleanFloat(excluded_credits + units);
+				excluded_retake_credits = cleanFloat(excluded_retake_credits + units);
 			} else {
 				// If NOT excluded:
 				// Earned credits: only if passed
@@ -373,12 +403,12 @@ export const computeCumMetrics = (terms, upToTermIdx, excludeInfo) => {
 		}
 	}
 
-	// GPA denominator = attempted - w_credits - excluded_credits
-	const gpaDenom = cleanFloat(attempted - w_credits - excluded_credits);
+	// GPA denominator = attempted - excluded_gpa_credits (W/P/empty) - excluded_retake_credits (replaced grades)
+	const gpaDenom = cleanFloat(attempted - excluded_gpa_credits - excluded_retake_credits);
 	const gpa = gpaDenom > 0 ? cleanFloat(qp / gpaDenom) : 0;
 
 	return {
-		attempted: cleanFloat(attempted), // Total attempted (INCLUDING W)
+		attempted: cleanFloat(attempted), // Total attempted (INCLUDING W, P)
 		earned: cleanFloat(earned), // Earned (excluding W and replaced courses)
 		qp: cleanFloat(qp),
 		gpa: cleanFloat(gpa),
