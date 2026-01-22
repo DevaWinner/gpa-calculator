@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
 import Joyride, { STATUS, EVENTS } from "react-joyride";
 import Header from "./components/Header";
 import TermCard from "./components/TermCard";
@@ -28,10 +27,19 @@ import {
 import { debugError } from "./utils/debug";
 
 const STORAGE_KEY = "gpa_state_v3";
+const EXPERIMENTAL_KEY = "gpa_experimental_v1";
 
 function App() {
-	const location = useLocation();
-	const isExperimental = location.pathname === "/experimental";
+	// Experimental Mode State (Persisted)
+	const [isExperimental, setIsExperimental] = useState(() => {
+		return localStorage.getItem(EXPERIMENTAL_KEY) === "true";
+	});
+
+	const toggleExperimental = () => {
+		const newState = !isExperimental;
+		setIsExperimental(newState);
+		localStorage.setItem(EXPERIMENTAL_KEY, String(newState));
+	};
 
 	const [transferEarned, setTransferEarned] = useState(0);
 	const [transfers, setTransfers] = useState([]);
@@ -669,6 +677,8 @@ function App() {
 						onNavigateTraining={() => setCurrentView("training")}
 						onStartTour={() => { setRunTour(true); setStepIndex(0); }}
 						onOpenEquivalences={() => setShowEquivalences(true)}
+						isExperimental={isExperimental}
+						onToggleExperimental={toggleExperimental}
 					/>
 					
 					{/* Transfer Credits Section */}
