@@ -32,6 +32,8 @@ function TermCard({
 
 
 	const termData = termCalc(term, excludeMap);
+	const cumData = computeCumMetrics(terms, term.termIndex, excludeMap);
+
 	// Calculate filled courses count
 	const filledCount = termData.rows.filter(
 		(r) =>
@@ -209,7 +211,7 @@ function TermCard({
 				term.isHighlighted ? "ring-2 ring-yellow-400 bg-yellow-50" : ""
 			}`}
 		>
-			<div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 tour-term-header">
+			<div className="relative flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 tour-term-header">
 				<div className="flex items-baseline gap-3">
 					<h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
 						<input
@@ -219,11 +221,13 @@ function TermCard({
 							className="bg-transparent border-none outline-none focus:bg-white focus:border focus:border-gray-300 focus:rounded px-2 py-1 min-w-[100px]"
 							placeholder={`Term ${term.termIndex}`}
 						/>
-						<span className="text-xs font-medium text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full ml-2">
-							{filledCount} / {termData.rows.length}
-						</span>
 					</h2>
 				</div>
+				
+				<span className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full pointer-events-none">
+					{filledCount} / {termData.rows.length}
+				</span>
+
 				<div className="flex items-center gap-1">
 					<button
 						onClick={() => toggleTermHighlight(term.termIndex)}
