@@ -11,6 +11,8 @@ function CourseRow({
 	setRetake,
 	clearRetake,
 	isDuplicate,
+	retakeChainInfo,
+	retakeGroups,
 }) {
 	const [showMenu, setShowMenu] = useState(false);
 
@@ -166,6 +168,8 @@ function CourseRow({
 						removeCourse={removeCourse}
 						setRetake={setRetake}
 						clearRetake={clearRetake}
+						retakeChainInfo={retakeChainInfo}
+						retakeGroups={retakeGroups}
 						onClose={() => setShowMenu(false)}
 					/>
 				)}

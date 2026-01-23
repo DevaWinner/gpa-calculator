@@ -571,6 +571,9 @@ function App() {
 
 	const setRetake = (termIndex, rowId, targetRowId) => {
 		updateCourse(termIndex, rowId, "retakeOf", targetRowId);
+		// If we are manually setting a retake, we assume the user WANTS it linked,
+		// so we should clear the 'unlink' flag if it was set.
+		updateCourse(termIndex, rowId, "isManuallyUnlinked", false);
 	};
 
 	const clearRetake = (rowId) => {
@@ -578,6 +581,8 @@ function App() {
 		const term = terms.find((t) => t.rows.some((r) => r.id === rowId));
 		if (term) {
 			updateCourse(term.termIndex, rowId, "retakeOf", null);
+			// Also explicitly unlink from auto-detection
+			updateCourse(term.termIndex, rowId, "isManuallyUnlinked", true);
 		}
 	};
 

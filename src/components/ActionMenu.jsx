@@ -7,6 +7,8 @@ function ActionMenu({
 	removeCourse,
 	setRetake,
 	clearRetake,
+	retakeChainInfo, // New prop
+	retakeGroups,    // New prop
 	onClose,
 }) {
 	const [view, setView] = useState("main"); // 'main', 'terms', or 'courses'
@@ -17,20 +19,65 @@ function ActionMenu({
 
 	// Find the retaken course information
 	const getRetakenCourseInfo = () => {
-		if (!row.retakeOf) return null;
+		// 1. Manual Link
+		if (row.retakeOf) {
+			for (const termGroup of earlierCoursesByTerm) {
+				const course = termGroup.courses.find((c) => c.rowId === row.retakeOf);
+				if (course) {
+					return {
+						name: course.label || "(Unnamed)",
+						units: course.units,
+						grade: course.grade,
+						term: termGroup.termIndex,
+						termName: termGroup.termName,
+						type: 'Manual'
+					};
+				}
+			}
+			return { name: "Unknown", type: 'Manual' };
+		}
 
-		for (const termGroup of earlierCoursesByTerm) {
-			const course = termGroup.courses.find((c) => c.rowId === row.retakeOf);
-			if (course) {
-				return {
-					name: course.label || "(Unnamed)",
-					units: course.units,
-					grade: course.grade,
-					term: termGroup.termIndex,
-					termName: termGroup.termName,
-				};
+		// 2. Auto Link
+		let activeChainInfo = retakeChainInfo;
+
+		// Failsafe: If specific chain info wasn't passed but row knows it's in a chain
+		if (!activeChainInfo && row.inRetakeChain && retakeGroups) {
+			for (const groupId in retakeGroups) {
+				if (retakeGroups[groupId].some(c => c.rowId === row.id)) {
+					activeChainInfo = { inRetakeChain: true, groupId };
+					break;
+				}
 			}
 		}
+
+		if (activeChainInfo && activeChainInfo.inRetakeChain) {
+			// Even if we can't find the group details, we know it's linked.
+			let linkDetails = { name: "Linked Course", termName: "Another Term", type: 'Auto' };
+
+			if (activeChainInfo.groupId && retakeGroups) {
+				const group = retakeGroups[activeChainInfo.groupId];
+				if (group && group.length > 1) {
+					// Find a linked course
+					let other = null;
+					if (activeChainInfo.bestRowId && activeChainInfo.bestRowId !== row.id) {
+						other = group.find(c => c.rowId === activeChainInfo.bestRowId);
+					}
+					if (!other) {
+						other = group.find(c => c.rowId !== row.id);
+					}
+
+					if (other) {
+						linkDetails = {
+							name: other.name || "(Unnamed)",
+							termName: other.termName || `Term ${other.termIndex}`,
+							type: 'Auto'
+						};
+					}
+				}
+			}
+			return linkDetails;
+		}
+
 		return null;
 	};
 
@@ -213,21 +260,18 @@ function ActionMenu({
 						Back
 					</button>
 
-					{row.retakeOf && (
+					{retakenCourse && (
 						<button
 							onClick={handleClearRetake}
-							className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors border-b border-gray-200"
+							className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors border-b border-gray-200 group"
 						>
-							<div className="font-medium">Clear Retake</div>
+							<div className="flex justify-between items-center">
+								<div className="font-medium text-red-600 group-hover:text-red-700">
+									{retakenCourse.type === 'Manual' ? 'Clear Manual Link' : 'Unlink Course'}
+								</div>
+							</div>
 							<div className="text-xs text-gray-500 mt-0.5">
-								{retakenCourse ? (
-									<>
-										<span className="font-medium">{retakenCourse.name}</span> (
-										{retakenCourse.termName || `Term ${retakenCourse.term}`})
-									</>
-								) : (
-									row.retakeOf
-								)}
+								Linked to <span className="font-medium text-gray-700">{retakenCourse.name}</span> ({retakenCourse.termName})
 							</div>
 						</button>
 					)}

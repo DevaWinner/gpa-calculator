@@ -136,11 +136,11 @@ export const computeRetakeExclusionsMap = (terms, equivalences = [], systemEquiv
 
 	for (const t of terms) {
 		for (const r of t.rows) {
-			allRows[r.id] = { ...r, termIndex: t.termIndex };
+			allRows[r.id] = { ...r, termIndex: t.termIndex, termName: t.name };
 
-			// Link by Name
+			// Link by Name - ONLY if not manually unlinked
 			const name = r.name ? r.name.replace(/\s+/g, '').toLowerCase() : "";
-			if (name) {
+			if (name && !r.isManuallyUnlinked) {
 				if (!nameToIds[name]) nameToIds[name] = [];
 				nameToIds[name].push(r.id);
 			}
@@ -232,8 +232,10 @@ export const computeRetakeExclusionsMap = (terms, equivalences = [], systemEquiv
 		retakeGroups[root].push({
 			rowId: r.id,
 			termIndex: r.termIndex,
+			termName: r.termName, // Add termName for UI display
 			grade: r.grade,
 			units: parseFloat(r.units) || 0,
+			name: r.name, // Add name for UI display
 		});
 	}
 

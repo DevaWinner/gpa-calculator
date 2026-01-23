@@ -328,6 +328,8 @@ function TermCard({
 								updateCourse={updateCourse}
 								setRetake={setRetake}
 								clearRetake={clearRetake}
+								retakeChainInfo={excludeMap.retakeChainInfo?.[row.id]}
+								retakeGroups={excludeMap.retakeGroups}
 								isDuplicate={
 									row.name && nameCounts[row.name.toUpperCase()] > 1
 								}
