@@ -1,4 +1,4 @@
-# gpa-calculator
+# Transcript calculator
 
 ## Environment Configuration
 

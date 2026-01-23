@@ -1,7 +1,7 @@
 # Feature Specification: Smart Transcript Import
 
 ## Objective
-Implement a system to populate the GPA Calculator terms and courses by uploading a structured file.
+Implement a system to populate the Transcript calculator terms and courses by uploading a structured file.
 
 ## Format Analysis
 

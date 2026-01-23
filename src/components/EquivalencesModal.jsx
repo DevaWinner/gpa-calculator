@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { resolveEquivalenceGroups } from "../utils/calculations";
 
-function EquivalencesModal({ equivalences, setEquivalences, onClose }) {
+function EquivalencesModal({ equivalences, setEquivalences, systemEquivalences = {}, isExperimental = false, onClose }) {
 	const [courseA, setCourseA] = useState("");
 	const [courseB, setCourseB] = useState("");
 
@@ -13,7 +14,7 @@ function EquivalencesModal({ equivalences, setEquivalences, onClose }) {
 
 		if (normA === normB) return; // Don't add self-equivalence
 
-		// Check for duplicates (A-B or B-A)
+		// Check for duplicates (A-B or B-A) in user equivalences
 		const exists = equivalences.some(
 			(eq) =>
 				(eq.courseA === normA && eq.courseB === normB) ||
@@ -33,6 +34,13 @@ function EquivalencesModal({ equivalences, setEquivalences, onClose }) {
 	const handleRemove = (id) => {
 		setEquivalences(equivalences.filter((eq) => eq.id !== id));
 	};
+
+	// Compute grouped equivalences for display
+	const groupedEquivalences = useMemo(() => {
+		// Only calculate groups if in experimental mode
+		if (!isExperimental) return [];
+		return resolveEquivalenceGroups(equivalences, systemEquivalences);
+	}, [equivalences, systemEquivalences, isExperimental]);
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -67,74 +75,89 @@ function EquivalencesModal({ equivalences, setEquivalences, onClose }) {
 					</p>
 
 					{/* Add New */}
-					<div className="flex gap-2 mb-6 items-end">
+					<div className="flex gap-2 mb-6 items-end bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
 						<div className="flex-1">
-							<label className="block text-xs font-medium text-gray-700 mb-1">Course A</label>
+							<label className="block text-xs font-bold text-indigo-900 uppercase tracking-wider mb-1">Course A</label>
 							<input
 								type="text"
 								value={courseA}
 								onChange={(e) => setCourseA(e.target.value.replace(/\s+/g, '').toUpperCase())}
-								className="w-full p-2 text-sm rounded-md border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+								className="w-full p-2 text-sm rounded-md border border-indigo-200 focus:ring-indigo-500 focus:border-indigo-500"
 								placeholder="MATH101"
 							/>
 						</div>
-						<div className="pb-2 text-gray-400">=</div>
+						<div className="pb-2 text-indigo-300 font-bold">＝</div>
 						<div className="flex-1">
-							<label className="block text-xs font-medium text-gray-700 mb-1">Course B</label>
+							<label className="block text-xs font-bold text-indigo-900 uppercase tracking-wider mb-1">Course B</label>
 							<input
 								type="text"
 								value={courseB}
 								onChange={(e) => setCourseB(e.target.value.replace(/\s+/g, '').toUpperCase())}
-								className="w-full p-2 text-sm rounded-md border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+								className="w-full p-2 text-sm rounded-md border border-indigo-200 focus:ring-indigo-500 focus:border-indigo-500"
 								placeholder="MATH100"
 							/>
 						</div>
 						<button
 							onClick={handleAdd}
-							className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors"
+							className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-md hover:bg-indigo-700 transition-all shadow-sm active:scale-95"
 						>
 							Add
 						</button>
 					</div>
 
-					{/* List */}
-					<div className="border border-gray-200 rounded-lg overflow-hidden">
-						<table className="min-w-full divide-y divide-gray-200">
-							<thead className="bg-gray-50">
-								<tr>
-									<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Course 1</th>
-									<th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Course 2</th>
-									<th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase w-16">Action</th>
-								</tr>
-							</thead>
-							<tbody className="bg-white divide-y divide-gray-200">
-								{equivalences.length === 0 ? (
-									<tr>
-										<td colSpan="3" className="px-4 py-4 text-center text-sm text-gray-500 italic">
-											No equivalences defined.
-										</td>
-									</tr>
-								) : (
-									equivalences.map((eq) => (
-										<tr key={eq.id}>
-											<td className="px-4 py-2 text-sm text-gray-900">{eq.courseA}</td>
-											<td className="px-4 py-2 text-sm text-gray-900">{eq.courseB}</td>
-											<td className="px-4 py-2 text-center">
-												<button
-													onClick={() => handleRemove(eq.id)}
-													className="text-red-600 hover:text-red-800 transition-colors"
-												>
-													<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-														<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-													</svg>
-												</button>
-											</td>
-										</tr>
-									))
-								)}
-							</tbody>
-						</table>
-					</div>
+					{/* Active Groups View - Only in Experimental */}
+					{isExperimental && groupedEquivalences.length > 0 && (
+						<div className="mb-6">
+							<h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Active Equivalence Groups</h4>
+							<div className="space-y-2">
+								{groupedEquivalences.map((group, idx) => (
+									<div key={idx} className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex flex-wrap gap-2">
+										{group.map((course) => (
+											<span key={course} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-300 shadow-sm">
+												{course}
+											</span>
+										))}
+									</div>
+								))}
+							</div>
+						</div>
+					)}
+
+					{/* Management List (Only User Defined) */}
+					{equivalences.length > 0 && (
+						<div>
+							<h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Custom Rules</h4>
+							<div className="border border-gray-200 rounded-lg overflow-hidden">
+								<table className="min-w-full divide-y divide-gray-200">
+									<tbody className="bg-white divide-y divide-gray-200">
+										{equivalences.map((eq) => (
+											<tr key={eq.id} className="hover:bg-gray-50 transition-colors">
+												<td className="px-4 py-2 text-sm text-gray-900 w-1/2">{eq.courseA}</td>
+												<td className="px-4 py-2 text-sm text-gray-900 w-1/2">{eq.courseB}</td>
+												<td className="px-4 py-2 text-center">
+													<button
+														onClick={() => handleRemove(eq.id)}
+														className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded-md hover:bg-red-50"
+														title="Remove Rule"
+													>
+														<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+														</svg>
+													</button>
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					)}
+					
+					{equivalences.length === 0 && (!isExperimental || groupedEquivalences.length === 0) && (
+						<div className="text-center py-8 text-gray-400 italic text-sm border-2 border-dashed border-gray-200 rounded-xl">
+							No equivalences defined.
+						</div>
+					)}
 				</div>
 				
 				<div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">

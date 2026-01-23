@@ -4,10 +4,10 @@ function Header({ clearAll, onNavigateTraining, onStartTour, onOpenEquivalences,
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
 				<div>
 					<h1 className="text-3xl font-black tracking-tight text-indigo-700">
-						GPA Calculator
+						Transcript calculator
 					</h1>
 					<p className="text-xs text-red-600 font-semibold italic mt-1">
-						Internal Tool v3.0
+						Internal Tool v4.0
 					</p>
 				</div>
 				<div className="flex items-center gap-2 flex-wrap">

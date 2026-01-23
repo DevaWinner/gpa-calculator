@@ -63,7 +63,54 @@ export const fmt = (n, valueType = "other") => {
 	return processed.toFixed(decimals);
 };
 
-export const computeRetakeExclusionsMap = (terms, equivalences = []) => {
+// Helper to compute equivalence groups (Transitive Closure)
+export const resolveEquivalenceGroups = (userEquivalences = [], systemEquivalences = {}) => {
+	const nameParent = {};
+	const findName = (n) => {
+		if (nameParent[n] === undefined) nameParent[n] = n;
+		if (nameParent[n] !== n) nameParent[n] = findName(nameParent[n]);
+		return nameParent[n];
+	};
+	const unionNames = (n1, n2) => {
+		const root1 = findName(n1);
+		const root2 = findName(n2);
+		if (root1 !== root2) nameParent[root1] = root2;
+	};
+
+	// 1. Process System Equivalences
+	for (const mainCourse in systemEquivalences) {
+		const nameA = mainCourse.replace(/\s+/g, '').toLowerCase();
+		findName(nameA); 
+		
+		const equivalents = systemEquivalences[mainCourse];
+		for (const eqCourse of equivalents) {
+			const nameB = eqCourse.replace(/\s+/g, '').toLowerCase();
+			unionNames(nameA, nameB);
+		}
+	}
+
+	// 2. Process User Equivalences
+	for (const eq of userEquivalences) {
+		const nameA = eq.courseA.replace(/\s+/g, '').toLowerCase();
+		const nameB = eq.courseB.replace(/\s+/g, '').toLowerCase();
+		unionNames(nameA, nameB);
+	}
+
+	// 3. Build Groups
+	const groups = {};
+	// We need to iterate over all known names. 
+	// The 'nameParent' keys contain all names we've seen.
+	for (const name in nameParent) {
+		const root = findName(name);
+		if (!groups[root]) groups[root] = new Set();
+		groups[root].add(name.toUpperCase());
+	}
+
+	// Return array of sets (or arrays)
+	return Object.values(groups).filter(g => g.size > 1).map(g => Array.from(g));
+};
+
+export const computeRetakeExclusionsMap = (terms, equivalences = [], systemEquivalences = {}, useTransitive = false) => {
 	const retakeGroups = {}; // Map groupID (root rep) -> array of instances
 	const cumulativeExclusions = {}; // rowId -> startingFromTermIndex
 	const retakeChainInfo = {}; // rowId -> { inRetakeChain: true, bestRowId, excludeFromTerm }
@@ -85,22 +132,11 @@ export const computeRetakeExclusionsMap = (terms, equivalences = []) => {
 
 	// 1. Map names to IDs to link same-named courses
 	const nameToIds = {};
-	// Also keep track of all row objects for later retrieval
 	const allRows = {};
 
 	for (const t of terms) {
 		for (const r of t.rows) {
 			allRows[r.id] = { ...r, termIndex: t.termIndex };
-
-			// Skip W for grouping only if it's NOT explicitly linked
-			// But wait, if I retake a W course, I want them grouped.
-			// If I have Math 101 (W) and Math 101 (A), they should group so I can see the history?
-			// But W doesn't replace and isn't replaced in a grade-sense.
-			// However, if the user explicitly links them, we should probably group them?
-			// Current requirement: "Retakes of a course that was taken with W should act currently and not misbehave"
-			// Previous implementation skipped W in grouping.
-			// If I skip W here, they won't be in the Union-Find structure unless I handle them carefully.
-			// Let's include W in the structure but handle grade logic later.
 
 			// Link by Name
 			const name = r.name ? r.name.replace(/\s+/g, '').toLowerCase() : "";
@@ -119,7 +155,64 @@ export const computeRetakeExclusionsMap = (terms, equivalences = []) => {
 		}
 	}
 
-	// Union all courses with the same name
+	if (useTransitive) {
+		// 2a. Use the shared helper to get transitive groups of NAMES (Handles missing links)
+		const equivalentNameGroups = resolveEquivalenceGroups(equivalences, systemEquivalences);
+
+		// Apply Transitive Groups to Transcript Rows
+		for (const group of equivalentNameGroups) {
+			// group is an array of uppercase names like ['MATH100', 'MATH101']
+			const combinedRowIds = [];
+			
+			for (const nameUpper of group) {
+				const nameLower = nameUpper.toLowerCase();
+				if (nameToIds[nameLower]) {
+					combinedRowIds.push(...nameToIds[nameLower]);
+				}
+			}
+
+			// Union all found rows together
+			for (let i = 1; i < combinedRowIds.length; i++) {
+				union(combinedRowIds[0], combinedRowIds[i]);
+			}
+		}
+	} else {
+		// 2b. Simple Pairwise Logic (Requires both courses to be present)
+		
+		// Process User Equivalences
+		for (const eq of equivalences) {
+			const nameA = eq.courseA.replace(/\s+/g, '').toLowerCase();
+			const nameB = eq.courseB.replace(/\s+/g, '').toLowerCase();
+
+			const idsA = nameToIds[nameA];
+			const idsB = nameToIds[nameB];
+
+			if (idsA && idsA.length > 0 && idsB && idsB.length > 0) {
+				union(idsA[0], idsB[0]);
+			}
+		}
+
+		// Process System Equivalences (if any are passed)
+		for (const mainCourse in systemEquivalences) {
+			const nameA = mainCourse.replace(/\s+/g, '').toLowerCase();
+			const equivalents = systemEquivalences[mainCourse];
+			const idsA = nameToIds[nameA];
+			
+			for (const eqCourse of equivalents) {
+				const nameB = eqCourse.replace(/\s+/g, '').toLowerCase();
+				const idsB = nameToIds[nameB];
+
+				if (idsA && idsA.length > 0 && idsB && idsB.length > 0) {
+					union(idsA[0], idsB[0]);
+				}
+			}
+		}
+	}
+
+	// 4. Also Union rows that share the exact same name (base case)
+	// (This is technically redundant if resolveEquivalenceGroups handled singletons, 
+	// but strictly speaking resolveEquivalenceGroups only returns groups > 1.
+	// So we still need to link "Math 101" to "Math 101".)
 	for (const name in nameToIds) {
 		const ids = nameToIds[name];
 		for (let i = 1; i < ids.length; i++) {
@@ -127,21 +220,7 @@ export const computeRetakeExclusionsMap = (terms, equivalences = []) => {
 		}
 	}
 
-	// Union courses based on global equivalences
-	for (const eq of equivalences) {
-		const nameA = eq.courseA.replace(/\s+/g, '').toLowerCase();
-		const nameB = eq.courseB.replace(/\s+/g, '').toLowerCase();
-
-		const idsA = nameToIds[nameA];
-		const idsB = nameToIds[nameB];
-
-		if (idsA && idsA.length > 0 && idsB && idsB.length > 0) {
-			// Union the first instance of each; UF will handle the rest
-			union(idsA[0], idsB[0]);
-		}
-	}
-
-	// 2. Build Groups from UF Roots
+	// 5. Build Groups from UF Roots
 	for (const rowId in allRows) {
 		const root = find(rowId);
 		if (!retakeGroups[root]) {

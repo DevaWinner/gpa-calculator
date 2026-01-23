@@ -14,7 +14,7 @@ function TrainingModule({ onBack }) {
 							Course Objective
 						</h3>
 						<p className="text-gray-700 leading-relaxed">
-							Welcome to the GPA Calculator Training Module. This tool is designed to help students and advisors simulate and understand complex GPA scenarios, including retakes, transfer credits, and term-by-term performance analysis.
+							Welcome to the Transcript calculator Training Module. This tool is designed to help students and advisors simulate and understand complex GPA scenarios, including retakes, transfer credits, and term-by-term performance analysis.
 						</p>
 					</div>
 
@@ -465,7 +465,7 @@ function TrainingModule({ onBack }) {
 							Final Assessment
 						</h3>
 						<p className="text-gray-600">
-							Verify your understanding of the GPA Calculator system.
+							Verify your understanding of the Transcript calculator system.
 						</p>
 					</div>
 					<div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
@@ -483,7 +483,7 @@ function TrainingModule({ onBack }) {
 				<div>
 					<h2 className="text-2xl font-black">System Training Module</h2>
 					<p className="text-indigo-200 text-sm">
-						Comprehensive guide to the GPA Calculator System v3.0
+						Comprehensive guide to the Transcript calculator System v4.0
 					</p>
 				</div>
 				<button

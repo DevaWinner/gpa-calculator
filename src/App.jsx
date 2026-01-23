@@ -25,6 +25,7 @@ import {
 	computeRetakeExclusionsMap,
 } from "./utils/calculations";
 import { debugError } from "./utils/debug";
+import systemEquivalences from "./data/equivalences.json";
 
 const STORAGE_KEY = "gpa_state_v3";
 const EXPERIMENTAL_KEY = "gpa_experimental_v1";
@@ -590,7 +591,7 @@ function App() {
 	};
 
 	// Calculate statistics
-	const excludeMap = computeRetakeExclusionsMap(terms, equivalences);
+	const excludeMap = computeRetakeExclusionsMap(terms, equivalences, isExperimental ? systemEquivalences : {}, isExperimental);
 	const lastTermIndex = terms.length;
 	const instStats = computeCumMetrics(terms, lastTermIndex, excludeMap);
 
@@ -630,6 +631,8 @@ function App() {
 				<EquivalencesModal
 					equivalences={equivalences}
 					setEquivalences={setEquivalences}
+					systemEquivalences={isExperimental ? systemEquivalences : {}}
+					isExperimental={isExperimental}
 					onClose={() => setShowEquivalences(false)}
 				/>
 			)}
@@ -685,6 +688,24 @@ function App() {
 								<p className="mt-2 text-amber-700">
 									Share feedback and issues with your team leaders to help refine the system. If you are not comfortable with potential inaccuracies, please toggle <strong>Experimental Mode off</strong> in the header.
 								</p>
+								
+								{/* System Equivalences List */}
+								{Object.keys(systemEquivalences).length > 0 && (
+									<div className="mt-4 pt-3 border-t border-amber-200/60">
+										<p className="text-xs font-bold text-amber-900 uppercase tracking-wide mb-2">
+											Preconfigured Equivalencies Active:
+										</p>
+										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-xs text-amber-800 font-mono">
+											{Object.entries(systemEquivalences).map(([main, equivs]) => (
+												<div key={main}>
+													<span className="font-semibold">{main}</span> 
+													<span className="text-amber-600"> ↔ </span> 
+													<span className="opacity-80">[{equivs.join(", ")}]</span>
+												</div>
+											))}
+										</div>
+									</div>
+								)}
 							</div>
 						</div>
 					)}
