@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import ActionMenu from "./ActionMenu";
 import { buildEarlierCoursesByTerm, fmt, SCALE } from "../utils/calculations";
 
@@ -13,8 +13,25 @@ function CourseRow({
 	isDuplicate,
 	retakeChainInfo,
 	retakeGroups,
+	shouldFocus, // New prop
+	onAddNext,   // New prop
 }) {
 	const [showMenu, setShowMenu] = useState(false);
+	const nameInputRef = useRef(null);
+
+	// Auto-focus logic
+	useEffect(() => {
+		if (shouldFocus && nameInputRef.current) {
+			nameInputRef.current.focus();
+		}
+	}, [shouldFocus]);
+
+	const handleKeyDown = (e) => {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			onAddNext();
+		}
+	};
 
 	const handleUpdate = (field, value) => {
 		// Convert course names to uppercase and remove all whitespace
@@ -57,6 +74,7 @@ function CourseRow({
 			<td className={baseCellClass}>
 				<div className="flex items-center gap-1">
 					<input
+						ref={nameInputRef}
 						type="text"
 						value={row.name || ""}
 						onChange={(e) => handleUpdate("name", e.target.value)}
@@ -119,6 +137,7 @@ function CourseRow({
 				<select
 					value={row.grade || ""}
 					onChange={(e) => handleUpdate("grade", e.target.value)}
+					onKeyDown={handleKeyDown}
 					className={`${inputClass} text-center bg-white cursor-pointer`}
 				>
 					<option value="">Select Grade</option>

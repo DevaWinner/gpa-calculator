@@ -40,12 +40,19 @@ function App() {
 		const newState = !isExperimental;
 		setIsExperimental(newState);
 		localStorage.setItem(EXPERIMENTAL_KEY, String(newState));
+		
+		// If turning off experimental, expand all terms
+		if (!newState) {
+			const newTerms = terms.map(t => ({ ...t, isMinimized: false }));
+			setTerms(newTerms);
+		}
 	};
 
 	const [transferEarned, setTransferEarned] = useState(0);
 	const [transfers, setTransfers] = useState([]);
 	const [terms, setTerms] = useState([]);
 	const [nextRowId, setNextRowId] = useState(1);
+	const [lastAddedRowId, setLastAddedRowId] = useState(null); // Track for auto-focus
 		const [isAnyModalOpen, setIsAnyModalOpen] = useState(false); // New state for modal control
 			const [currentView, setCurrentView] = useState("calculator"); // 'calculator' | 'training'
 			const [runTour, setRunTour] = useState(false);
@@ -458,6 +465,13 @@ function App() {
 		setTerms(newTerms);
 	};
 
+	const toggleTermMinimize = (termIndex) => {
+		const newTerms = terms.map((t) =>
+			t.termIndex === termIndex ? { ...t, isMinimized: !t.isMinimized } : t
+		);
+		setTerms(newTerms);
+	};
+
 	const removeTerm = (termIndex) => {
 		// Identify the term to remove and its row IDs
 		const termToRemove = terms.find(t => t.termIndex === termIndex);
@@ -489,6 +503,7 @@ function App() {
 	};
 
 	const addCourse = (termIndex) => {
+		const newId = String(nextRowId);
 		const newTerms = terms.map((t) => {
 			if (t.termIndex === termIndex) {
 				return {
@@ -496,7 +511,7 @@ function App() {
 					rows: [
 						...t.rows,
 						{
-							id: String(nextRowId),
+							id: newId,
 							name: "",
 							units: 0,
 							grade: "", // Changed from "W" to ""
@@ -509,6 +524,7 @@ function App() {
 		});
 		setTerms(newTerms);
 		setNextRowId(nextRowId + 1);
+		setLastAddedRowId(newId);
 	};
 
 	const removeCourse = (termIndex, rowId) => {
@@ -745,6 +761,9 @@ function App() {
 								setIsAnyModalOpen={setIsAnyModalOpen} // Pass the setter down
 								insertTermAfter={insertTermAfter} // Pass insert function
 								toggleTermHighlight={toggleTermHighlight} // Pass highlight toggle
+								toggleTermMinimize={toggleTermMinimize} // Pass minimize toggle
+								lastAddedRowId={lastAddedRowId}
+								isExperimental={isExperimental} // Pass experimental flag
 							/>
 						))}
 					</section>

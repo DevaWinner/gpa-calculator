@@ -22,6 +22,9 @@ function TermCard({
 	setIsAnyModalOpen, // New prop
 	insertTermAfter, // New prop
 	toggleTermHighlight, // New prop
+	toggleTermMinimize, // New prop
+	lastAddedRowId, // New prop
+	isExperimental, // New prop
 }) {
 	const [activeModal, setActiveModal] = useState(null); // 'term' | 'cum' | null
 
@@ -229,6 +232,23 @@ function TermCard({
 				</span>
 
 				<div className="flex items-center gap-1">
+					{isExperimental && (
+						<button
+							onClick={() => toggleTermMinimize(term.termIndex)}
+							className="p-2 text-gray-400 hover:text-indigo-600 transition-colors"
+							title={term.isMinimized ? "Expand Term" : "Minimize Term"}
+						>
+							{term.isMinimized ? (
+								<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+								</svg>
+							) : (
+								<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+								</svg>
+							)}
+						</button>
+					)}
 					<button
 						onClick={() => toggleTermHighlight(term.termIndex)}
 						className={`p-2 transition-colors ${
@@ -293,58 +313,97 @@ function TermCard({
 				</div>
 			</div>
 
-			<div className="overflow-x-auto overflow-y-visible">
-				<table className="w-full text-sm">
-					<thead className="bg-gray-50 text-gray-600 border-b border-gray-200">
-						<tr>
-							<th className="p-3 text-left text-xs font-semibold uppercase tracking-wide">
-								Course
-							</th>
-							<th className="p-3 text-left text-xs font-semibold uppercase tracking-wide">
-								Units
-							</th>
-							<th className="p-3 text-left text-xs font-semibold uppercase tracking-wide">
-								Grade
-							</th>
-							<th className="p-3 text-center text-xs font-semibold uppercase tracking-wide">
-								Grade Value
-							</th>
-							<th className="p-3 text-center text-xs font-semibold uppercase tracking-wide">
-								Quality Points
-							</th>
-							<th className="p-3 text-center text-xs font-semibold uppercase tracking-wide">
-								Actions
-							</th>
-						</tr>
-					</thead>
-					<tbody className="divide-y divide-gray-100">
-						{termData.rows.map((row) => (
-							<CourseRow
-								key={row.id}
-								row={row}
-								term={term}
-								terms={terms}
-								removeCourse={removeCourse}
-								updateCourse={updateCourse}
-								setRetake={setRetake}
-								clearRetake={clearRetake}
-								retakeChainInfo={excludeMap.retakeChainInfo?.[row.id]}
-								retakeGroups={excludeMap.retakeGroups}
-								isDuplicate={
-									row.name && nameCounts[row.name.toUpperCase()] > 1
-								}
-							/>
-						))}
-					</tbody>
-					<tfoot>
-						<tr>
-							<td colSpan="6" className="px-3 py-3 text-center">
+			{(!term.isMinimized || !isExperimental) && (
+				<>
+					<div className="overflow-x-auto overflow-y-visible">
+						<table className="w-full text-sm">
+							<thead className="bg-gray-50 text-gray-600 border-b border-gray-200">
+								<tr>
+									<th className="p-3 text-left text-xs font-semibold uppercase tracking-wide">
+										Course
+									</th>
+									<th className="p-3 text-left text-xs font-semibold uppercase tracking-wide">
+										Units
+									</th>
+									<th className="p-3 text-left text-xs font-semibold uppercase tracking-wide">
+										Grade
+									</th>
+									<th className="p-3 text-center text-xs font-semibold uppercase tracking-wide">
+										Grade Value
+									</th>
+									<th className="p-3 text-center text-xs font-semibold uppercase tracking-wide">
+										Quality Points
+									</th>
+									<th className="p-3 text-center text-xs font-semibold uppercase tracking-wide">
+										Actions
+									</th>
+								</tr>
+							</thead>
+							<tbody className="divide-y divide-gray-100">
+								{termData.rows.map((row) => (
+									<CourseRow
+										key={row.id}
+										row={row}
+										term={term}
+										terms={terms}
+										removeCourse={removeCourse}
+																		updateCourse={updateCourse}
+																		setRetake={setRetake}
+																		clearRetake={clearRetake}
+																		retakeChainInfo={excludeMap.retakeChainInfo?.[row.id]}
+																		retakeGroups={excludeMap.retakeGroups}										isDuplicate={
+											row.name && nameCounts[row.name.toUpperCase()] > 1
+										}
+										shouldFocus={row.id === lastAddedRowId}
+										onAddNext={() => addCourse(term.termIndex)}
+									/>
+								))}
+							</tbody>
+							<tfoot>
+								<tr>
+									<td colSpan="6" className="px-3 py-3 text-center">
+										<button
+											onClick={() => addCourse(term.termIndex)}
+											className="inline-flex items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors group tour-add-course-btn"
+										>
+											<svg
+												className="w-5 h-5"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth="2"
+													d="M12 4v16m8-8H4"
+												></path>
+											</svg>
+										</button>
+									</td>
+								</tr>
+							</tfoot>
+						</table>
+					</div>
+
+					{/* Term Summary */}
+					<div className="px-4 py-4 bg-gray-50 border-t border-gray-200">
+						<div className="grid grid-cols-12 gap-2 text-sm font-medium text-gray-600">
+							<div className="col-span-3"></div>
+							<div className="col-span-3 text-center">Attempted</div>
+							<div className="col-span-3 text-center">Earned</div>
+							<div className="col-span-3 text-center">Quality Points</div>
+						</div>
+						{/* Term GPA Row */}
+						<div className="grid grid-cols-12 items-center mt-1">
+							<div className="col-span-3 font-semibold text-gray-800 flex items-center gap-1">
+								Term GPA: <span>{fmt(termData.gpa, "gpa")}</span>
 								<button
-									onClick={() => addCourse(term.termIndex)}
-									className="inline-flex items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors group tour-add-course-btn"
+									onClick={() => setActiveModal("term")}
+									className="text-gray-400 hover:text-indigo-600 transition-colors tour-term-gpa-info-btn"
 								>
 									<svg
-										className="w-5 h-5"
+										className="w-4 h-4"
 										fill="none"
 										stroke="currentColor"
 										viewBox="0 0 24 24"
@@ -353,91 +412,57 @@ function TermCard({
 											strokeLinecap="round"
 											strokeLinejoin="round"
 											strokeWidth="2"
-											d="M12 4v16m8-8H4"
-										></path>
+											d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+										/>
 									</svg>
 								</button>
-							</td>
-						</tr>
-					</tfoot>
-				</table>
-			</div>
-
-			{/* Term Summary */}
-			<div className="px-4 py-4 bg-gray-50 border-t border-gray-200">
-				<div className="grid grid-cols-12 gap-2 text-sm font-medium text-gray-600">
-					<div className="col-span-3"></div>
-					<div className="col-span-3 text-center">Attempted</div>
-					<div className="col-span-3 text-center">Earned</div>
-					<div className="col-span-3 text-center">Quality Points</div>
-				</div>
-				{/* Term GPA Row */}
-				<div className="grid grid-cols-12 items-center mt-1">
-					<div className="col-span-3 font-semibold text-gray-800 flex items-center gap-1">
-						Term GPA: <span>{fmt(termData.gpa, "gpa")}</span>
-						<button
-							onClick={() => setActiveModal("term")}
-							className="text-gray-400 hover:text-indigo-600 transition-colors tour-term-gpa-info-btn"
-						>
-							<svg
-								className="w-4 h-4"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth="2"
-									d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-								/>
-							</svg>
-						</button>
+							</div>
+							<div className="col-span-3 text-center">
+								{fmt(termData.attempted, "other")}
+							</div>
+							<div className="col-span-3 text-center">
+								{fmt(termData.earned, "other")}
+							</div>
+							<div className="col-span-3 text-center">
+								{fmt(termData.qp, "other")}
+							</div>
+						</div>
+						{/* Cum GPA Row */}
+						<div className="grid grid-cols-12 items-center mt-3">
+							<div className="col-span-3 font-semibold text-gray-800 flex items-center gap-1">
+								Cum GPA: <span>{fmt(cumData.gpa, "gpa")}</span>
+								<button
+									onClick={() => setActiveModal("cum")}
+									className="text-gray-400 hover:text-indigo-600 transition-colors tour-cum-gpa-info-btn"
+								>
+									<svg
+										className="w-4 h-4"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth="2"
+											d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+										/>
+									</svg>
+								</button>
+							</div>
+							<div className="col-span-3 text-center">
+								{fmt(cumData.attempted, "other")}
+							</div>
+							<div className="col-span-3 text-center">
+								{fmt(cumData.earned, "other")}
+							</div>
+							<div className="col-span-3 text-center">
+								{fmt(cumData.qp, "other")}
+							</div>
+						</div>
 					</div>
-					<div className="col-span-3 text-center">
-						{fmt(termData.attempted, "other")}
-					</div>
-					<div className="col-span-3 text-center">
-						{fmt(termData.earned, "other")}
-					</div>
-					<div className="col-span-3 text-center">
-						{fmt(termData.qp, "other")}
-					</div>
-				</div>
-				{/* Cum GPA Row */}
-				<div className="grid grid-cols-12 items-center mt-3">
-					<div className="col-span-3 font-semibold text-gray-800 flex items-center gap-1">
-						Cum GPA: <span>{fmt(cumData.gpa, "gpa")}</span>
-						<button
-							onClick={() => setActiveModal("cum")}
-							className="text-gray-400 hover:text-indigo-600 transition-colors tour-cum-gpa-info-btn"
-						>
-							<svg
-								className="w-4 h-4"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth="2"
-									d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-								/>
-							</svg>
-						</button>
-					</div>
-					<div className="col-span-3 text-center">
-						{fmt(cumData.attempted, "other")}
-					</div>
-					<div className="col-span-3 text-center">
-						{fmt(cumData.earned, "other")}
-					</div>
-					<div className="col-span-3 text-center">
-						{fmt(cumData.qp, "other")}
-					</div>
-				</div>
-			</div>
+				</>
+			)}
 
 			{activeModal && (
 				<CalculationDetailsModal
