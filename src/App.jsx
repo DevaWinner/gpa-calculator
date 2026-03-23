@@ -23,6 +23,7 @@ import {
 	computeCumMetrics,
 	computeRetakeExclusionsMap,
 } from "./utils/calculations";
+import { applyImportedTerms } from "./utils/importUtils.js";
 import { debugError } from "./utils/debug";
 import systemEquivalences from "./data/equivalences.json";
 
@@ -54,13 +55,17 @@ function App() {
 	const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
 	// Import Handler
-	const handleImportData = (parsedData) => {
-		setTerms(parsedData.terms);
-		setNextRowId(parsedData.nextRowId);
-		// Reset other state? Maybe keep transfers if they exist or prompt user?
-		// For now, let's keep transfers as they are usually separate.
-		// If the CSV includes transfer terms, we might want to extract them separately?
-		// The parser puts them in `terms`. The user can manually move them if needed, or we improve parser later.
+	const handleImportData = ({ parsedData, mode }) => {
+		const result = applyImportedTerms({
+			existingTerms: terms,
+			importedTerms: parsedData.terms,
+			startingRowId: nextRowId,
+			mode,
+		});
+
+		setTerms(result.terms);
+		setNextRowId(result.nextRowId);
+		setLastAddedRowId(null);
 		setIsSessionManagerOpen(false); // Close menu on successful import
 	};
 				
@@ -73,6 +78,7 @@ function App() {
 						const prevTermsLength = useRef(0);
 				
 						const prevFirstTermRowsLength = useRef(0);
+						const saveTimeoutRef = useRef(null);
 				
 						
 				
@@ -384,9 +390,22 @@ function App() {
 			equivalences,
 		};
 
-		saveSessionData(activeSessionId, state).catch((error) => {
-			debugError(`Failed to save session ${activeSessionId}`, error);
-		});
+		if (saveTimeoutRef.current) {
+			window.clearTimeout(saveTimeoutRef.current);
+		}
+
+		saveTimeoutRef.current = window.setTimeout(() => {
+			saveSessionData(activeSessionId, state).catch((error) => {
+				debugError(`Failed to save session ${activeSessionId}`, error);
+			});
+		}, 400);
+
+		return () => {
+			if (saveTimeoutRef.current) {
+				window.clearTimeout(saveTimeoutRef.current);
+				saveTimeoutRef.current = null;
+			}
+		};
 	}, [
 		activeSessionId,
 		equivalences,
@@ -397,6 +416,15 @@ function App() {
 		transferEarned,
 		transfers,
 	]);
+
+	useEffect(
+		() => () => {
+			if (saveTimeoutRef.current) {
+				window.clearTimeout(saveTimeoutRef.current);
+			}
+		},
+		[]
+	);
 
 	// Session Handlers
 	const loadSession = async (sessionId) => {

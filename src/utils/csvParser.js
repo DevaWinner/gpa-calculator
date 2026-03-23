@@ -1,116 +1,395 @@
+import { normalizeCourseCode, validateImportedTerms } from "./importUtils.js";
+
+const VALID_GRADES = new Set([
+	"A",
+	"A-",
+	"B+",
+	"B",
+	"B-",
+	"C+",
+	"C",
+	"C-",
+	"D+",
+	"D",
+	"D-",
+	"E",
+	"F",
+	"UW",
+	"W",
+	"P",
+]);
+
+const DATE_REGEX = /\d{1,2}\/\d{1,2}\/\d{4}/;
+const TRANSFER_REGEX = /Transfer Term/i;
+const TERM_HEADER_PATTERNS = [
+	/^(\d{4}\s+(?:(?:First|Second|Third|Fourth)\s+)?(?:Fall|Winter|Spring|Summer)(?:\s+(?:Semester|Term|Session|Block))?)$/i,
+	/^(\d{4}\s+Term\s+\d+)$/i,
+	/^(\d{4}\s+Block\s+\d+)$/i,
+	/^(\d{4}\s+Semester\s+[A-Za-z]+)$/i,
+	/^(Historical Campus Term Semester)$/i,
+];
+
+const normalizeSpaces = (value = "") => value.replace(/\s+/g, " ").trim();
+
+export const cleanCsvField = (value = "") =>
+	value ? value.replace(/^"|"$/g, "").trim() : "";
+
+const normalizeCsvText = (csvText = "") =>
+	csvText.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+export const parseCsvRecords = (csvText = "") => {
+	const text = normalizeCsvText(csvText);
+	const records = [];
+
+	let columns = [];
+	let field = "";
+	let rawRecord = "";
+	let inQuotes = false;
+	let currentLine = 1;
+	let recordStartLine = 1;
+
+	const finalizeRecord = () => {
+		const nextColumns = [...columns, field];
+		const hasContent = nextColumns.some((column) => normalizeSpaces(column) !== "");
+
+		if (hasContent) {
+			records.push({
+				columns: nextColumns,
+				rawRecord,
+				lineNumber: recordStartLine,
+			});
+		}
+
+		columns = [];
+		field = "";
+		rawRecord = "";
+	};
+
+	for (let index = 0; index < text.length; index += 1) {
+		const character = text[index];
+
+		if (character === '"') {
+			if (inQuotes && text[index + 1] === '"') {
+				field += '"';
+				rawRecord += '""';
+				index += 1;
+				continue;
+			}
+
+			inQuotes = !inQuotes;
+			rawRecord += character;
+			continue;
+		}
+
+		if (character === "," && !inQuotes) {
+			columns.push(field);
+			field = "";
+			rawRecord += character;
+			continue;
+		}
+
+		if (character === "\n" && !inQuotes) {
+			finalizeRecord();
+			currentLine += 1;
+			recordStartLine = currentLine;
+			continue;
+		}
+
+		field += character;
+		rawRecord += character;
+
+		if (character === "\n") {
+			currentLine += 1;
+		}
+	}
+
+	if (field !== "" || columns.length > 0 || rawRecord !== "") {
+		finalizeRecord();
+	}
+
+	return {
+		records,
+		totalLines: text === "" ? 0 : text.split("\n").length,
+	};
+};
+
+const buildIssue = ({
+	code,
+	severity = "warning",
+	title,
+	detail,
+	lineNumber,
+	rawLine,
+}) => ({
+	code,
+	severity,
+	title,
+	detail,
+	lineNumber,
+	rawLine,
+});
+
+const buildSkippedLine = ({ code, reason, lineNumber, rawLine }) => ({
+	code,
+	reason,
+	lineNumber,
+	rawLine,
+});
+
+const isNumeric = (value) => !Number.isNaN(parseFloat(value)) && Number.isFinite(parseFloat(value));
+
+const normalizeGrade = (value = "") => normalizeSpaces(value).split(" ")[0].toUpperCase();
+
+const extractTermHeader = (columns) => {
+	for (const column of columns) {
+		const cleaned = normalizeSpaces(cleanCsvField(column));
+		if (!cleaned) {
+			continue;
+		}
+
+		if (TRANSFER_REGEX.test(cleaned)) {
+			return { type: "transfer", rawText: cleaned };
+		}
+
+		if (!DATE_REGEX.test(cleaned)) {
+			continue;
+		}
+
+		const dateMatch = cleaned.match(DATE_REGEX);
+		const labelText = normalizeSpaces(cleaned.slice(0, dateMatch.index));
+
+		for (const pattern of TERM_HEADER_PATTERNS) {
+			const match = labelText.match(pattern);
+			if (match) {
+				return {
+					type: "term",
+					termName: normalizeSpaces(match[1]),
+					rawText: cleaned,
+				};
+			}
+		}
+
+		if (/\d{4}/.test(cleaned) && /\b(Fall|Winter|Spring|Summer|Semester|Term|Session|Block)\b/i.test(cleaned)) {
+			return { type: "unknown", rawText: cleaned };
+		}
+	}
+
+	return null;
+};
+
+const extractCourseRow = (columns) => {
+	for (let index = 0; index < columns.length - 3; index += 1) {
+		const attempted = cleanCsvField(columns[index]);
+		const earned = cleanCsvField(columns[index + 1]);
+		const grade = normalizeGrade(columns[index + 3]);
+
+		if (!VALID_GRADES.has(grade)) {
+			continue;
+		}
+
+		if (!isNumeric(attempted) || !isNumeric(earned)) {
+			continue;
+		}
+
+		const courseCode = normalizeCourseCode(cleanCsvField(columns[index - 2] || ""));
+		const units = parseFloat(attempted);
+
+		return {
+			courseCode,
+			units,
+			grade,
+		};
+	}
+
+	return null;
+};
+
+const classifyIgnoredLine = (rawLine) => {
+	const normalized = normalizeSpaces(rawLine);
+
+	if (!normalized) {
+		return null;
+	}
+
+	if (/\b(Course|Credits|Grade|Quality Points|Attempted|Earned)\b/i.test(normalized)) {
+		return "Ignored transcript header row.";
+	}
+
+	return "Line did not match a recognized term header or course row.";
+};
+
 export const parseTranscriptCSV = (csvText) => {
-    const lines = csvText.split(/\r?\n/);
-    const terms = [];
-    let currentTerm = null;
-    let termCounter = 1;
-    let rowCounter = 1;
+	const { records, totalLines } = parseCsvRecords(csvText);
+	const terms = [];
+	const diagnostics = {
+		issues: [],
+		skippedLines: [],
+		detectedTerms: [],
+		ignoredTransfers: [],
+		summary: {
+			totalLines,
+			parsedTerms: 0,
+			parsedCourses: 0,
+			skippedLines: 0,
+			ignoredTransfers: 0,
+			warningCount: 0,
+			errorCount: 0,
+		},
+	};
 
-    // Helper to clean CSV fields (remove quotes, trim)
-    const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : '';
+	let currentTerm = null;
+	let termCounter = 1;
+	let rowCounter = 1;
 
-    // Regex for Term Header: matches transcript term labels with a date range
-    // Supports:
-    // - 2005 Fall Semester
-    // - 2002 Second Summer Block
-    // - 2002 First Summer Session
-    // - 2025 Term 1
-    // - 2025 Semester Spring
-    const termRegex = /(\d{4}\s+(?:(?:First|Second|Third|Fourth)\s+)?(?:Fall|Winter|Spring|Summer)(?:\s+(?:Semester|Term|Session|Block))?|Term\s+\d+|Semester\s+[A-Za-z]+).*?(\d{1,2}\/\d{1,2}\/\d{4})/;
-    
-    // Regex for Transfer Term
-    const transferRegex = /Transfer Term/;
+	for (const record of records) {
+		const { columns, rawRecord, lineNumber } = record;
+		const termHeader = extractTermHeader(columns);
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        
-        // Robust CSV Split: Splits by comma ONLY if not inside quotes.
-        // Handles "Social Dance, Beginning" as one field.
-        const columns = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-        
-        // 1. Check for Term Header
-        const termCandidate = columns.find(c => termRegex.test(c) || transferRegex.test(c));
-        if (termCandidate) {
-            let termName = "Unknown Term";
-            if (transferRegex.test(termCandidate)) {
-                // User Request: Ignore "Transfer Term" and its courses entirely.
-                currentTerm = null;
-                continue;
-            }
+		if (termHeader) {
+			if (termHeader.type === "transfer") {
+				currentTerm = null;
+				diagnostics.ignoredTransfers.push({
+					lineNumber,
+					rawLine: termHeader.rawText,
+				});
+				continue;
+			}
 
-            const match = termCandidate.match(termRegex);
-            if (match) {
-                termName = match[1].trim(); // e.g., "2005 Fall Semester"
-            } else {
-                // If it matched neither transfer nor standard term regex but got here? 
-                // (The `find` condition ensures it matched one of them).
-                // If we are here, it must be termRegex.
-                continue;
-            }
-            
-            // Consolidate headers: If this header matches the current term, don't create a new one.
-            if (currentTerm && currentTerm.name === termName) {
-                continue;
-            }
-            
-            // Create new term
-            currentTerm = {
-                termIndex: termCounter++,
-                name: termName,
-                rows: []
-            };
-            terms.push(currentTerm);
-            continue;
-        }
+			if (termHeader.type === "unknown") {
+				diagnostics.issues.push(
+					buildIssue({
+						code: "unknown-term-header",
+						title: "Unrecognized term header",
+						detail: "This line looks like a term header but did not match any supported transcript pattern.",
+						lineNumber,
+						rawLine: termHeader.rawText,
+					})
+				);
+				diagnostics.skippedLines.push(
+					buildSkippedLine({
+						code: "unknown-term-header",
+						reason: "Unrecognized term header format.",
+						lineNumber,
+						rawLine: termHeader.rawText,
+					})
+				);
+				currentTerm = null;
+			} else if (!currentTerm || currentTerm.name !== termHeader.termName) {
+				currentTerm = {
+					termIndex: termCounter,
+					name: termHeader.termName,
+					rows: [],
+				};
+				termCounter += 1;
+				terms.push(currentTerm);
+				diagnostics.detectedTerms.push({
+					lineNumber,
+					rawLine: termHeader.rawText,
+					termName: termHeader.termName,
+				});
+			}
+		}
 
-        // 2. Check for Course Data
-        // Valid row looks like: ..., CODE, NAME, CREDITS, EARNED, QP, GRADE, ...
-        // We need to find the "Grade" column. It's usually a letter grade (A, A-, B+, P, etc.)
-        // And it should be preceded by numbers.
-        
-        // Let's look for the pattern: [Number] [Number] [Number] [Grade]
-        // In sample: 3.00, 3.00, 10.20, B+
-        
-        for (let j = 0; j < columns.length - 3; j++) {
-            const gradeCand = clean(columns[j+3]);
-            const qpCand = clean(columns[j+2]);
-            const earnedCand = clean(columns[j+1]);
-            const attCand = clean(columns[j]);
-            
-            // Check if Grade is valid (A-F, P, W, etc)
-            const validGrades = ["A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "E", "F", "UW", "W", "P"];
-            // Grade in CSV might have space "A "
-            const gradeClean = gradeCand.split(' ')[0]; // "A " -> "A"
-            
-            if (validGrades.includes(gradeClean)) {
-                // Verify preceding columns are numbers
-                const isNum = (n) => !isNaN(parseFloat(n)) && isFinite(n);
-                
-                if (isNum(attCand) && isNum(earnedCand)) {
-                    // Found a match!
-                    // Course Code is likely at j-2 or j-3?
-                    // Sample: CODE, Name, Att, Earn, QP, Grade
-                    // Index:  k     k+1   k+2  k+3   k+4  k+5
-                    // My loop `j` started at `attCand`. So `j` is `k+2`.
-                    // So Code is at `j-2`. Name is at `j-1`.
-                    
-                    const courseCode = clean(columns[j-2]);
-                    const courseName = clean(columns[j-1]);
-                    const credits = parseFloat(attCand);
-                    
-                    if (courseCode && currentTerm) {
-                        currentTerm.rows.push({
-                            id: String(rowCounter++),
-                            name: courseCode, // Only use Course Code per user request
-                            units: credits,
-                            grade: gradeClean,
-                            retakeOf: null
-                        });
-                        break; // Stop looking in this line
-                    }
-                }
-            }
-        }
-    }
-    
-    return { terms, nextRowId: rowCounter };
+		const courseRow = extractCourseRow(columns);
+		if (courseRow) {
+			if (!currentTerm) {
+				diagnostics.skippedLines.push(
+					buildSkippedLine({
+						code: "course-without-term",
+						reason: "Course row was found before a recognized term header.",
+						lineNumber,
+						rawLine: rawRecord,
+					})
+				);
+				diagnostics.issues.push(
+					buildIssue({
+						code: "course-without-term",
+						title: "Course row skipped before any term header",
+						detail: "A course row was detected before the parser recognized a term for it.",
+						lineNumber,
+						rawLine: rawRecord,
+					})
+				);
+				continue;
+			}
+
+			if (!courseRow.courseCode) {
+				diagnostics.skippedLines.push(
+					buildSkippedLine({
+						code: "missing-course-code",
+						reason: "Course row was recognized, but no course code could be extracted.",
+						lineNumber,
+						rawLine: rawRecord,
+					})
+				);
+				diagnostics.issues.push(
+					buildIssue({
+						code: "missing-course-code",
+						title: "Course row skipped with no course code",
+						detail: "The import keeps course codes only, and this row did not contain one in the expected position.",
+						lineNumber,
+						rawLine: rawRecord,
+					})
+				);
+				continue;
+			}
+
+			currentTerm.rows.push({
+				id: String(rowCounter),
+				name: courseRow.courseCode,
+				units: courseRow.units,
+				grade: courseRow.grade,
+				retakeOf: null,
+			});
+			rowCounter += 1;
+			continue;
+		}
+
+		const ignoredReason = classifyIgnoredLine(rawRecord);
+		if (ignoredReason) {
+			diagnostics.skippedLines.push(
+				buildSkippedLine({
+					code: "ignored-line",
+					reason: ignoredReason,
+					lineNumber,
+					rawLine: rawRecord,
+				})
+			);
+		}
+	}
+
+	const validation = validateImportedTerms(terms);
+
+	diagnostics.summary = {
+		totalLines,
+		parsedTerms: terms.length,
+		parsedCourses: terms.reduce((sum, term) => sum + term.rows.length, 0),
+		skippedLines: diagnostics.skippedLines.length,
+		ignoredTransfers: diagnostics.ignoredTransfers.length,
+		warningCount:
+			diagnostics.issues.filter((issue) => issue.severity === "warning").length +
+			validation.summary.warningCount,
+		errorCount:
+			diagnostics.issues.filter((issue) => issue.severity === "error").length +
+			validation.summary.errorCount,
+	};
+
+	if (terms.length === 0) {
+		diagnostics.issues.push(
+			buildIssue({
+				code: "no-terms",
+				severity: "error",
+				title: "No terms found",
+				detail: "The uploaded file did not contain any supported term headers.",
+			})
+		);
+		diagnostics.summary.errorCount += 1;
+	}
+
+	return {
+		terms,
+		nextRowId: rowCounter,
+		diagnostics,
+		validation,
+	};
 };
