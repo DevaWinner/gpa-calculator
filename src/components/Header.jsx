@@ -7,7 +7,7 @@ function Header({ clearAll, onNavigateTraining, onStartTour, onOpenEquivalences 
 						Transcript calculator
 					</h1>
 					<p className="text-xs text-red-600 font-semibold italic mt-1">
-						Internal Tool v4.0
+						Internal Tool v5.0
 					</p>
 				</div>
 				<div className="flex items-center gap-2 flex-wrap">

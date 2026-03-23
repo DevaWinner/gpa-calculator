@@ -8,12 +8,14 @@ export const parseTranscriptCSV = (csvText) => {
     // Helper to clean CSV fields (remove quotes, trim)
     const clean = (str) => str ? str.replace(/^"|"$/g, '').trim() : '';
 
-    // Regex for Term Header: matches "YYYY [Season] Semester" or "YYYY Term X" with a date range
+    // Regex for Term Header: matches transcript term labels with a date range
     // Supports:
     // - 2005 Fall Semester
+    // - 2002 Second Summer Block
+    // - 2002 First Summer Session
     // - 2025 Term 1
     // - 2025 Semester Spring
-    const termRegex = /(\d{4}\s+(?:Fall|Winter|Spring|Summer|Term\s+\d+|Semester\s+[A-Za-z]+).*?)(\d{1,2}\/\d{1,2}\/\d{4})/;
+    const termRegex = /(\d{4}\s+(?:(?:First|Second|Third|Fourth)\s+)?(?:Fall|Winter|Spring|Summer)(?:\s+(?:Semester|Term|Session|Block))?|Term\s+\d+|Semester\s+[A-Za-z]+).*?(\d{1,2}\/\d{1,2}\/\d{4})/;
     
     // Regex for Transfer Term
     const transferRegex = /Transfer Term/;

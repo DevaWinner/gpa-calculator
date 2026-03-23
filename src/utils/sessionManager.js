@@ -1,86 +1,164 @@
-// src/utils/sessionManager.js
+const DB_NAME = "gpaCalculator";
+const DB_VERSION = 1;
+const SESSION_STORE = "sessions";
 
-const INDEX_KEY = "gpa_sessions_index";
-const SESSION_PREFIX = "gpa_session_";
+let dbPromise = null;
+let ensureInitialSessionPromise = null;
 
 export const generateId = () => {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+	return Date.now().toString(36) + Math.random().toString(36).slice(2);
 };
 
-// Get the list of all available sessions
-export const getSessionIndex = () => {
-    try {
-        const index = localStorage.getItem(INDEX_KEY);
-        return index ? JSON.parse(index) : [];
-    } catch (e) {
-        console.error("Failed to load session index", e);
-        return [];
-    }
+const sortSessions = (sessions) =>
+	[...sessions].sort((a, b) => b.lastModified - a.lastModified);
+
+const toSessionMeta = (record) => ({
+	id: record.id,
+	name: record.name,
+	lastModified: record.lastModified,
+});
+
+const requestToPromise = (request) =>
+	new Promise((resolve, reject) => {
+		request.onsuccess = () => resolve(request.result);
+		request.onerror = () =>
+			reject(request.error || new Error("IndexedDB request failed"));
+	});
+
+const openDatabase = () => {
+	if (dbPromise) {
+		return dbPromise;
+	}
+
+	dbPromise = new Promise((resolve, reject) => {
+		if (typeof indexedDB === "undefined") {
+			reject(new Error("IndexedDB is not available in this browser"));
+			return;
+		}
+
+		const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+		request.onupgradeneeded = () => {
+			const db = request.result;
+
+			if (!db.objectStoreNames.contains(SESSION_STORE)) {
+				db.createObjectStore(SESSION_STORE, { keyPath: "id" });
+			}
+		};
+
+		request.onsuccess = () => resolve(request.result);
+		request.onerror = () =>
+			reject(request.error || new Error("Failed to open IndexedDB"));
+		request.onblocked = () =>
+			reject(new Error("IndexedDB upgrade blocked by another tab"));
+	});
+
+	return dbPromise;
 };
 
-// Save the list of sessions
-export const saveSessionIndex = (index) => {
-    localStorage.setItem(INDEX_KEY, JSON.stringify(index));
+const getObjectStore = async (mode) => {
+	const db = await openDatabase();
+	return db.transaction(SESSION_STORE, mode).objectStore(SESSION_STORE);
 };
 
-// Load a specific session's data
-export const loadSessionData = (sessionId) => {
-    try {
-        const data = localStorage.getItem(`${SESSION_PREFIX}${sessionId}`);
-        return data ? JSON.parse(data) : null;
-    } catch (e) {
-        console.error(`Failed to load session ${sessionId}`, e);
-        return null;
-    }
+const getSessionRecord = async (sessionId) => {
+	const store = await getObjectStore("readonly");
+	return requestToPromise(store.get(sessionId));
 };
 
-// Save a specific session's data
-export const saveSessionData = (sessionId, data) => {
-    localStorage.setItem(`${SESSION_PREFIX}${sessionId}`, JSON.stringify(data));
+const putSessionRecord = async (record) => {
+	const store = await getObjectStore("readwrite");
+	await requestToPromise(store.put(record));
+	return record;
 };
 
-// Create a new session and return its ID
-export const createNewSession = (name = "Untitled Transcript") => {
-    const id = generateId();
-    const newSession = { id, name, lastModified: Date.now() };
-    
-    const index = getSessionIndex();
-    index.push(newSession);
-    saveSessionIndex(index);
-    
-    return newSession;
+const deleteSessionRecord = async (sessionId) => {
+	const store = await getObjectStore("readwrite");
+	await requestToPromise(store.delete(sessionId));
 };
 
-// Delete a session
-export const deleteSession = (sessionId) => {
-    const index = getSessionIndex().filter(s => s.id !== sessionId);
-    saveSessionIndex(index);
-    localStorage.removeItem(`${SESSION_PREFIX}${sessionId}`);
-    return index; // Return updated index
+export const getSessionIndex = async () => {
+	const store = await getObjectStore("readonly");
+	const records = await requestToPromise(store.getAll());
+	return sortSessions(records.map(toSessionMeta));
 };
 
-// Rename a session
-export const renameSession = (sessionId, newName) => {
-    const index = getSessionIndex().map(s => 
-        s.id === sessionId ? { ...s, name: newName, lastModified: Date.now() } : s
-    );
-    saveSessionIndex(index);
-    return index;
+export const loadSessionData = async (sessionId) => {
+	const record = await getSessionRecord(sessionId);
+	return record?.data ?? null;
 };
 
-// Migrate legacy data if it exists
-export const migrateLegacyData = (legacyKey) => {
-    const legacyData = localStorage.getItem(legacyKey);
-    if (legacyData) {
-        try {
-            const data = JSON.parse(legacyData);
-            const session = createNewSession("Legacy Transcript");
-            saveSessionData(session.id, data);
-            localStorage.removeItem(legacyKey); // Clean up
-            return session.id;
-        } catch (e) {
-            console.error("Migration failed", e);
-        }
-    }
-    return null;
+export const saveSessionData = async (sessionId, data) => {
+	const existing = await getSessionRecord(sessionId);
+	const nextRecord = {
+		id: sessionId,
+		name: existing?.name || "Untitled Transcript",
+		lastModified: Date.now(),
+		data,
+	};
+
+	await putSessionRecord(nextRecord);
+	return toSessionMeta(nextRecord);
+};
+
+export const createNewSession = async (
+	name = "Untitled Transcript",
+	data = null
+) => {
+	const session = {
+		id: generateId(),
+		name,
+		lastModified: Date.now(),
+		data,
+	};
+
+	await putSessionRecord(session);
+	return toSessionMeta(session);
+};
+
+export const ensureInitialSession = async (
+	name = "Untitled Transcript",
+	data = null
+) => {
+	if (!ensureInitialSessionPromise) {
+		ensureInitialSessionPromise = (async () => {
+			const index = await getSessionIndex();
+
+			if (index.length > 0) {
+				const session = index[0];
+				const sessionData = await loadSessionData(session.id);
+				return { index, session, data: sessionData };
+			}
+
+			const session = await createNewSession(name, data);
+			const nextIndex = await getSessionIndex();
+
+			return { index: nextIndex, session, data };
+		})().finally(() => {
+			ensureInitialSessionPromise = null;
+		});
+	}
+
+	return ensureInitialSessionPromise;
+};
+
+export const deleteSession = async (sessionId) => {
+	await deleteSessionRecord(sessionId);
+	return getSessionIndex();
+};
+
+export const renameSession = async (sessionId, newName) => {
+	const existing = await getSessionRecord(sessionId);
+
+	if (!existing) {
+		return getSessionIndex();
+	}
+
+	await putSessionRecord({
+		...existing,
+		name: newName,
+		lastModified: Date.now(),
+	});
+
+	return getSessionIndex();
 };

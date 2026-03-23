@@ -10,13 +10,12 @@ import ImportModal from "./components/ImportModal";
 import SessionManager from "./components/SessionManager";
 import {
 	getSessionIndex,
-	saveSessionIndex,
 	loadSessionData,
 	saveSessionData,
 	createNewSession,
 	deleteSession,
 	renameSession,
-	migrateLegacyData,
+	ensureInitialSession,
 } from "./utils/sessionManager";
 import {
 	SCALE,
@@ -27,7 +26,6 @@ import {
 import { debugError } from "./utils/debug";
 import systemEquivalences from "./data/equivalences.json";
 
-const STORAGE_KEY = "gpa_state_v3";
 const EXPERIMENTAL_KEY = "gpa_experimental_v1";
 const SHOW_AUTO_EQUIVALENCE_LIST = false;
 
@@ -49,6 +47,8 @@ function App() {
 				// Session Management State
 				const [sessions, setSessions] = useState([]);
 					const [activeSessionId, setActiveSessionId] = useState(null);
+					const [isStorageReady, setIsStorageReady] = useState(false);
+					const [isSessionHydrating, setIsSessionHydrating] = useState(true);
 				
 						const [isSessionManagerOpen, setIsSessionManagerOpen] = useState(false);
 	const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -262,40 +262,34 @@ function App() {
 		localStorage.removeItem(EXPERIMENTAL_KEY);
 	}, []);
 
-	// Initialize Sessions on mount
-	useEffect(() => {
-		let index = getSessionIndex();
-		
-		// Migration Check
-		if (index.length === 0) {
-			const migratedId = migrateLegacyData(STORAGE_KEY);
-			if (migratedId) {
-				index = getSessionIndex(); // Reload after migration
-			} else {
-				// No legacy data, create fresh default
-				createNewSession("Untitled Transcript");
-				index = getSessionIndex();
-			}
+	const buildDefaultTerms = (startId = 1) => {
+		const defaultTerms = [];
+		for (let i = 1; i <= 3; i++) {
+			defaultTerms.push({
+				termIndex: i,
+				name: `Term ${i}`,
+				isHighlighted: false,
+				rows: [
+					{
+						id: String(startId + i - 1),
+						name: "",
+						units: 0,
+						grade: "",
+						retakeOf: null,
+					},
+				],
+			});
 		}
+		return defaultTerms;
+	};
 
-		setSessions(index);
-		
-		// Load the most recent or first session
-		if (index.length > 0) {
-			// Sort by lastModified desc if possible, or just pick first
-			// The index array structure is simple, usually append-only, but we updated lastModified on rename/create
-			// Let's just pick the first one for simplicity or the one last used if we tracked it (we don't yet)
-			const sessionToLoad = index[0];
-			setActiveSessionId(sessionToLoad.id);
-			
-			const data = loadSessionData(sessionToLoad.id);
-			if (data) {
-				restoreState(data);
-			} else {
-				seedDefaultTerms(); // Fallback
-			}
-		}
-	}, []);
+	const buildDefaultState = (startId = 1) => ({
+		nextRowId: startId + 3,
+		transferEarned: 0,
+		transfers: [],
+		terms: buildDefaultTerms(startId),
+		equivalences: [],
+	});
 
 	const restoreState = (data) => {
 		setNextRowId(data.nextRowId || 1);
@@ -310,89 +304,169 @@ function App() {
 		setEquivalences(data.equivalences || []);
 	};
 
+	const seedDefaultTerms = (startId = 1) => {
+		restoreState(buildDefaultState(startId));
+	};
+
+	const createAndLoadSession = async (name) => {
+		const defaultState = buildDefaultState(1);
+		const newSession = await createNewSession(name, defaultState);
+		const nextSessions = await getSessionIndex();
+
+		setSessions(nextSessions);
+		setActiveSessionId(newSession.id);
+		restoreState(defaultState);
+
+		return newSession;
+	};
+
+	// Initialize Sessions on mount
+	useEffect(() => {
+		let isCancelled = false;
+
+		const initializeSessions = async () => {
+			try {
+				const defaultState = buildDefaultState(1);
+				const { index, session, data } = await ensureInitialSession(
+					"Untitled Transcript",
+					defaultState
+				);
+
+				if (isCancelled) {
+					return;
+				}
+
+				setSessions(index);
+				setActiveSessionId(session.id);
+
+				if (data) {
+					restoreState(data);
+				} else {
+					restoreState(defaultState);
+					await saveSessionData(session.id, defaultState);
+				}
+			} catch (error) {
+				debugError("Failed to initialize session storage", error);
+
+				if (isCancelled) {
+					return;
+				}
+
+				setSessions([]);
+				setActiveSessionId(null);
+				seedDefaultTerms(1);
+			} finally {
+				if (!isCancelled) {
+					setIsSessionHydrating(false);
+					setIsStorageReady(true);
+				}
+			}
+		};
+
+		initializeSessions();
+
+		return () => {
+			isCancelled = true;
+		};
+	}, []);
+
 	// Save to active session whenever state changes
 	useEffect(() => {
-		if (activeSessionId && terms.length > 0) {
-			const state = {
-				nextRowId,
-				transferEarned,
-				transfers,
-				terms,
-				equivalences,
-			};
-			saveSessionData(activeSessionId, state);
+		if (!isStorageReady || isSessionHydrating || !activeSessionId || terms.length === 0) {
+			return;
 		}
-	}, [activeSessionId, nextRowId, transferEarned, transfers, terms, equivalences]);
+
+		const state = {
+			nextRowId,
+			transferEarned,
+			transfers,
+			terms,
+			equivalences,
+		};
+
+		saveSessionData(activeSessionId, state).catch((error) => {
+			debugError(`Failed to save session ${activeSessionId}`, error);
+		});
+	}, [
+		activeSessionId,
+		equivalences,
+		isSessionHydrating,
+		isStorageReady,
+		nextRowId,
+		terms,
+		transferEarned,
+		transfers,
+	]);
 
 	// Session Handlers
-	const loadSession = (sessionId) => {
-		const data = loadSessionData(sessionId);
-		if (data) {
+	const loadSession = async (sessionId) => {
+		setIsSessionHydrating(true);
+
+		try {
+			const data = await loadSessionData(sessionId);
+
+			if (!data) {
+				return false;
+			}
+
 			setActiveSessionId(sessionId);
 			restoreState(data);
 			return true;
+		} catch (error) {
+			debugError(`Failed to load session ${sessionId}`, error);
+			return false;
+		} finally {
+			setIsSessionHydrating(false);
 		}
-		return false;
 	};
 
-	const handleSwitchSession = (sessionId) => {
-		if (loadSession(sessionId)) {
+	const handleSwitchSession = async (sessionId) => {
+		if (await loadSession(sessionId)) {
 			// setIsSessionManagerOpen(false); // Kept open per user request
 		}
 	};
 
-	const handleCreateSession = () => {
-		const newSession = createNewSession(`Transcript ${sessions.length + 1}`);
-		setSessions(getSessionIndex());
-		setActiveSessionId(newSession.id);
-		
-		// Reset State for new session
-		setTransferEarned(0);
-		setTransfers([]);
-		setEquivalences([]);
-		setNextRowId(1);
-		seedDefaultTerms(1); // This sets 'terms' state directly
-		// setIsSessionManagerOpen(false); // Kept open per user request
+	const handleCreateSession = async () => {
+		setIsSessionHydrating(true);
+
+		try {
+			await createAndLoadSession(`Transcript ${sessions.length + 1}`);
+			// setIsSessionManagerOpen(false); // Kept open per user request
+		} catch (error) {
+			debugError("Failed to create session", error);
+		} finally {
+			setIsSessionHydrating(false);
+		}
 	};
 
-	const handleRenameSession = (id, newName) => {
-		const updatedIndex = renameSession(id, newName);
-		setSessions(updatedIndex);
+	const handleRenameSession = async (id, newName) => {
+		try {
+			const updatedIndex = await renameSession(id, newName);
+			setSessions(updatedIndex);
+		} catch (error) {
+			debugError(`Failed to rename session ${id}`, error);
+		}
 	};
 
-	const handleDeleteSession = (id) => {
-		const updatedIndex = deleteSession(id);
-		setSessions(updatedIndex);
-		// If deleted active session, switch to another or create new
-		if (id === activeSessionId) {
-			if (updatedIndex.length > 0) {
-				loadSession(updatedIndex[0].id);
-			} else {
-				handleCreateSession(); // Create fresh if all deleted
+	const handleDeleteSession = async (id) => {
+		setIsSessionHydrating(true);
+
+		try {
+			const updatedIndex = await deleteSession(id);
+			setSessions(updatedIndex);
+
+			if (id === activeSessionId) {
+				if (updatedIndex.length > 0) {
+					await loadSession(updatedIndex[0].id);
+				} else {
+					await createAndLoadSession("Transcript 1");
+				}
 			}
+		} catch (error) {
+			debugError(`Failed to delete session ${id}`, error);
+		} finally {
+			setIsSessionHydrating(false);
 		}
-	};
-
-	const seedDefaultTerms = (startId = 1) => {
-		const defaultTerms = [];
-		for (let i = 1; i <= 3; i++) {
-			defaultTerms.push({
-				termIndex: i,
-				name: `Term ${i}`,
-				isHighlighted: false,
-				rows: [
-					{
-						id: String(startId + i - 1),
-						name: "",
-						units: 0,
-						grade: "", // Changed from "W" to ""
-						retakeOf: null,
-					},
-				],
-			});
-		}
-		setTerms(defaultTerms);
-		setNextRowId(startId + 3);
 	};
 
 	const addTerm = () => {
@@ -483,7 +557,6 @@ function App() {
 				})
 			}));
 		setTerms(newTerms);
-		localStorage.removeItem(STORAGE_KEY);
 	};
 
 	const updateTermName = (termIndex, name) => {
@@ -558,7 +631,6 @@ function App() {
 		if (terms.find((t) => t.termIndex === termIndex)?.rows.length === 0) {
 			setNextRowId(nextRowId + 1);
 		}
-		localStorage.removeItem(STORAGE_KEY);
 	};
 
 	const updateCourse = (termIndex, rowId, field, value) => {
@@ -626,7 +698,6 @@ function App() {
 	};
 
 	const clearAll = () => {
-		localStorage.removeItem(STORAGE_KEY);
 		setTransferEarned(0);
 		setTransfers([]);
 		setNextRowId(1);

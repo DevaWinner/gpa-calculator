@@ -483,7 +483,7 @@ function TrainingModule({ onBack }) {
 				<div>
 					<h2 className="text-2xl font-black">System Training Module</h2>
 					<p className="text-indigo-200 text-sm">
-						Comprehensive guide to the Transcript calculator System v4.0
+						Comprehensive guide to the Transcript calculator System v5.0
 					</p>
 				</div>
 				<button
