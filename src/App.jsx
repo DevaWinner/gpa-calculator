@@ -32,22 +32,7 @@ const EXPERIMENTAL_KEY = "gpa_experimental_v1";
 const SHOW_AUTO_EQUIVALENCE_LIST = false;
 
 function App() {
-	// Experimental Mode State (Persisted)
-	const [isExperimental, setIsExperimental] = useState(() => {
-		return localStorage.getItem(EXPERIMENTAL_KEY) === "true";
-	});
-
-	const toggleExperimental = () => {
-		const newState = !isExperimental;
-		setIsExperimental(newState);
-		localStorage.setItem(EXPERIMENTAL_KEY, String(newState));
-		
-		// If turning off experimental, expand all terms
-		if (!newState) {
-			const newTerms = terms.map(t => ({ ...t, isMinimized: false }));
-			setTerms(newTerms);
-		}
-	};
+	const isExperimental = false;
 
 	const [transferEarned, setTransferEarned] = useState(0);
 	const [transfers, setTransfers] = useState([]);
@@ -271,6 +256,11 @@ function App() {
 			document.body.style.overflow = 'unset';
 		};
 	}, [isAnyModalOpen]);
+
+	// Clear any stale experimental preference now that the toggle is retired.
+	useEffect(() => {
+		localStorage.removeItem(EXPERIMENTAL_KEY);
+	}, []);
 
 	// Initialize Sessions on mount
 	useEffect(() => {
@@ -769,8 +759,6 @@ function App() {
 						onNavigateTraining={() => setCurrentView("training")}
 						onStartTour={() => { setRunTour(true); setStepIndex(0); }}
 						onOpenEquivalences={() => setShowEquivalences(true)}
-						isExperimental={isExperimental}
-						onToggleExperimental={toggleExperimental}
 					/>
 					
 					{/* Transfer Credits Section */}
