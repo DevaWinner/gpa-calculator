@@ -1,7 +1,14 @@
 import { useState, useMemo } from "react";
 import { resolveEquivalenceGroups } from "../utils/calculations";
 
-function EquivalencesModal({ equivalences, setEquivalences, systemEquivalences = {}, isExperimental = false, onClose }) {
+function EquivalencesModal({
+	equivalences,
+	setEquivalences,
+	systemEquivalences = {},
+	isExperimental = false,
+	showAutoEquivalenceList = true,
+	onClose,
+}) {
 	const [courseA, setCourseA] = useState("");
 	const [courseB, setCourseB] = useState("");
 
@@ -37,10 +44,9 @@ function EquivalencesModal({ equivalences, setEquivalences, systemEquivalences =
 
 	// Compute grouped equivalences for display
 	const groupedEquivalences = useMemo(() => {
-		// Only calculate groups if in experimental mode
-		if (!isExperimental) return [];
+		if (!isExperimental || !showAutoEquivalenceList) return [];
 		return resolveEquivalenceGroups(equivalences, systemEquivalences);
-	}, [equivalences, systemEquivalences, isExperimental]);
+	}, [equivalences, systemEquivalences, isExperimental, showAutoEquivalenceList]);
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -106,7 +112,7 @@ function EquivalencesModal({ equivalences, setEquivalences, systemEquivalences =
 					</div>
 
 					{/* Active Groups View - Only in Experimental */}
-					{isExperimental && groupedEquivalences.length > 0 && (
+					{isExperimental && showAutoEquivalenceList && groupedEquivalences.length > 0 && (
 						<div className="mb-6">
 							<h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Active Equivalence Groups</h4>
 							<div className="space-y-2">

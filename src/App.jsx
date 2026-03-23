@@ -29,6 +29,7 @@ import systemEquivalences from "./data/equivalences.json";
 
 const STORAGE_KEY = "gpa_state_v3";
 const EXPERIMENTAL_KEY = "gpa_experimental_v1";
+const SHOW_AUTO_EQUIVALENCE_LIST = false;
 
 function App() {
 	// Experimental Mode State (Persisted)
@@ -571,35 +572,67 @@ function App() {
 	};
 
 	const updateCourse = (termIndex, rowId, field, value) => {
-		const newTerms = terms.map((t) => {
-			if (t.termIndex === termIndex) {
-				return {
-					...t,
-					rows: t.rows.map((r) =>
-						r.id === rowId ? { ...r, [field]: value } : r
-					),
-				};
-			}
-			return t;
-		});
-		setTerms(newTerms);
+		setTerms((prevTerms) =>
+			prevTerms.map((t) => {
+				if (t.termIndex === termIndex) {
+					return {
+						...t,
+						rows: t.rows.map((r) =>
+							r.id === rowId ? { ...r, [field]: value } : r
+						),
+					};
+				}
+				return t;
+			})
+		);
+	};
+
+	const updateCourseFields = (termIndex, rowId, fields) => {
+		setTerms((prevTerms) =>
+			prevTerms.map((t) => {
+				if (t.termIndex === termIndex) {
+					return {
+						...t,
+						rows: t.rows.map((r) =>
+							r.id === rowId ? { ...r, ...fields } : r
+						),
+					};
+				}
+				return t;
+			})
+		);
 	};
 
 	const setRetake = (termIndex, rowId, targetRowId) => {
-		updateCourse(termIndex, rowId, "retakeOf", targetRowId);
-		// If we are manually setting a retake, we assume the user WANTS it linked,
-		// so we should clear the 'unlink' flag if it was set.
-		updateCourse(termIndex, rowId, "isManuallyUnlinked", false);
+		updateCourseFields(termIndex, rowId, {
+			retakeOf: targetRowId,
+			// A manual assignment should override any earlier manual unlink.
+			isManuallyUnlinked: false,
+		});
 	};
 
 	const clearRetake = (rowId) => {
-		// Find which term contains this row
-		const term = terms.find((t) => t.rows.some((r) => r.id === rowId));
-		if (term) {
-			updateCourse(term.termIndex, rowId, "retakeOf", null);
-			// Also explicitly unlink from auto-detection
-			updateCourse(term.termIndex, rowId, "isManuallyUnlinked", true);
-		}
+		setTerms((prevTerms) =>
+			prevTerms.map((t) => {
+				if (!t.rows.some((r) => r.id === rowId)) {
+					return t;
+				}
+
+				return {
+					...t,
+					rows: t.rows.map((r) =>
+						r.id === rowId
+							? {
+									...r,
+									retakeOf: null,
+									// Keep the row detached from auto-detection after a manual unlink.
+									isManuallyUnlinked: true,
+							  }
+							: r
+					),
+				};
+			})
+		);
 	};
 
 	const clearAll = () => {
@@ -654,6 +687,7 @@ function App() {
 					setEquivalences={setEquivalences}
 					systemEquivalences={isExperimental ? systemEquivalences : {}}
 					isExperimental={isExperimental}
+					showAutoEquivalenceList={SHOW_AUTO_EQUIVALENCE_LIST}
 					onClose={() => setShowEquivalences(false)}
 				/>
 			)}
@@ -674,7 +708,6 @@ function App() {
 				onRenameSession={handleRenameSession}
 				onDeleteSession={handleDeleteSession}
 				onOpenImport={() => setIsImportModalOpen(true)}
-				showImport={isExperimental}
 			/>
 
 			{/* Floating Toggle Button */}
@@ -704,14 +737,14 @@ function App() {
 							<div className="text-sm text-amber-800">
 								<strong className="font-bold block text-amber-900 mb-1">Experimental Features Active</strong>
 								<p className="leading-relaxed">
-									New features (like CSV Import) are currently being tested for 100% accuracy. Please <strong>carefully review each term and course</strong> after using them.
+									Experimental calculator features are currently being tested for 100% accuracy. Please <strong>carefully review each term and course</strong> after using them.
 								</p>
 								<p className="mt-2 text-amber-700">
 									Share feedback and issues with your team leaders to help refine the system. If you are not comfortable with potential inaccuracies, please toggle <strong>Experimental Mode off</strong> in the header.
 								</p>
 								
 								{/* System Equivalences List */}
-								{Object.keys(systemEquivalences).length > 0 && (
+								{SHOW_AUTO_EQUIVALENCE_LIST && Object.keys(systemEquivalences).length > 0 && (
 									<div className="mt-4 pt-3 border-t border-amber-200/60">
 										<p className="text-xs font-bold text-amber-900 uppercase tracking-wide mb-2">
 											Preconfigured Equivalencies Active:
