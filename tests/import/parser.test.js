@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { parseTranscriptCSV } from "../../src/utils/csvParser.js";
-import { applyImportedTerms } from "../../src/utils/importUtils.js";
+import { applyImportedTerms, deriveTermSortKey } from "../../src/utils/importUtils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +33,27 @@ test("parses second summer block term headers", () => {
 	assert.equal(parsed.terms[0].name, "2002 Second Summer Block");
 	assert.equal(parsed.terms[0].rows[0].name, "MATH101");
 	assert.equal(parsed.terms[1].name, "2002 Fall Semester");
+});
+
+test("parses season block headers with block numbers", () => {
+	const parsed = parseTranscriptCSV(
+		[
+			'"2022 Fall Block 1 09/01/2022","MATH 101","","3","3","","A"',
+			'"2022 Fall Block 2 10/20/2022","ENG 201","","3","3","","B+"',
+		].join("\n")
+	);
+
+	assert.equal(parsed.terms.length, 2);
+	assert.deepEqual(
+		parsed.terms.map((term) => term.name),
+		["2022 Fall Block 1", "2022 Fall Block 2"]
+	);
+	assert.equal(parsed.terms[0].rows[0].name, "MATH101");
+	assert.equal(parsed.terms[1].rows[0].name, "ENG201");
+	assert.notEqual(deriveTermSortKey("2022 Fall Block 2"), null);
+	assert.ok(
+		deriveTermSortKey("2022 Fall Block 2") > deriveTermSortKey("2022 Fall Block 1")
+	);
 });
 
 test("reports unknown headers, course rows without terms, and ignored transfers", () => {

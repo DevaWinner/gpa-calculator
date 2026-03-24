@@ -22,7 +22,7 @@ const VALID_GRADES = new Set([
 const DATE_REGEX = /\d{1,2}\/\d{1,2}\/\d{4}/;
 const TRANSFER_REGEX = /Transfer Term/i;
 const TERM_HEADER_PATTERNS = [
-	/^(\d{4}\s+(?:(?:First|Second|Third|Fourth)\s+)?(?:Fall|Winter|Spring|Summer)(?:\s+(?:Semester|Term|Session|Block))?)$/i,
+	/^(\d{4}\s+(?:(?:First|Second|Third|Fourth)\s+)?(?:Fall|Winter|Spring|Summer)(?:\s+(?:(?:Semester|Term|Session)|(?:Block(?:\s+\d+)?)))?)$/i,
 	/^(\d{4}\s+Term\s+\d+)$/i,
 	/^(\d{4}\s+Block\s+\d+)$/i,
 	/^(\d{4}\s+Semester\s+[A-Za-z]+)$/i,

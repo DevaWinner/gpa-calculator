@@ -22,17 +22,18 @@ export const deriveTermSortKey = (termName = "") => {
 	const normalized = termName.replace(/\s+/g, " ").trim();
 
 	let match = normalized.match(
-		/^(\d{4})\s+(?:(First|Second|Third|Fourth)\s+)?(Winter|Spring|Summer|Fall)(?:\s+(?:Semester|Term|Session|Block))?$/i
+		/^(\d{4})\s+(?:(First|Second|Third|Fourth)\s+)?(Winter|Spring|Summer|Fall)(?:\s+(?:Semester|Term|Session|Block(?:\s+(\d+))?))?$/i
 	);
 	if (match) {
-		const [, yearText, ordinalText, seasonText] = match;
+		const [, yearText, ordinalText, seasonText, blockNumberText] = match;
 		const base = Number(yearText) * 100;
 		const season = TERM_SEASON_ORDER[seasonText.toUpperCase()];
 		const ordinal = ordinalText
-			? TERM_ORDINAL_ORDER[ordinalText.toUpperCase()] / 10
+			? TERM_ORDINAL_ORDER[ordinalText.toUpperCase()] / 100
 			: 0;
+		const blockNumber = blockNumberText ? Number(blockNumberText) / 1000 : 0;
 
-		return base + season + ordinal;
+		return base + season + ordinal + blockNumber;
 	}
 
 	match = normalized.match(/^(\d{4})\s+Term\s+(\d+)$/i);
