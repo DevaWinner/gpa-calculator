@@ -19,6 +19,10 @@ const VALID_GRADES = new Set([
 	"P",
 ]);
 
+const IMPORT_GRADE_ALIASES = {
+	WT: "W",
+};
+
 const DATE_REGEX = /\d{1,2}\/\d{1,2}\/\d{4}/;
 const TRANSFER_REGEX = /Transfer Term/i;
 const TERM_HEADER_PATTERNS = [
@@ -138,7 +142,10 @@ const buildSkippedLine = ({ code, reason, lineNumber, rawLine }) => ({
 
 const isNumeric = (value) => !Number.isNaN(parseFloat(value)) && Number.isFinite(parseFloat(value));
 
-const normalizeGrade = (value = "") => normalizeSpaces(value).split(" ")[0].toUpperCase();
+const normalizeGrade = (value = "") => {
+	const normalized = normalizeSpaces(value).split(" ")[0].toUpperCase();
+	return IMPORT_GRADE_ALIASES[normalized] || normalized;
+};
 
 const extractTermHeader = (columns) => {
 	for (const column of columns) {

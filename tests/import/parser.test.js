@@ -56,6 +56,17 @@ test("parses season block headers with block numbers", () => {
 	);
 });
 
+test("normalizes imported WT grades to W", () => {
+	const parsed = parseTranscriptCSV(
+		'"2024 Spring Semester 01/08/2024","ENG 101","","3","3","","WT"'
+	);
+
+	assert.equal(parsed.terms.length, 1);
+	assert.equal(parsed.terms[0].rows.length, 1);
+	assert.equal(parsed.terms[0].rows[0].grade, "W");
+	assert.equal(parsed.diagnostics.summary.parsedCourses, 1);
+});
+
 test("reports unknown headers, course rows without terms, and ignored transfers", () => {
 	const parsed = parseTranscriptCSV(readFixture("mixed-noise.csv"));
 	const issueCodes = parsed.diagnostics.issues.map((issue) => issue.code);

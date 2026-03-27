@@ -23,7 +23,7 @@ function TrainingModule({ onBack }) {
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div className="flex items-start">
 								<div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">1</div>
-								<p className="text-gray-600 text-sm">Master accurate data entry for terms, courses, and external transfer credits.</p>
+								<p className="text-gray-600 text-sm">Master accurate data entry and transcript imports for terms, courses, and external transfer credits.</p>
 							</div>
 							<div className="flex items-start">
 								<div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">2</div>
@@ -170,6 +170,15 @@ function TrainingModule({ onBack }) {
 										<span>Click any transcript in the list to load it. The menu remains open to allow quick switching between records.</span>
 									</div>
 								</li>
+								<li className="flex items-start gap-2">
+									<div className="p-1 bg-amber-100 rounded text-amber-700 shrink-0 mt-0.5">
+										<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-5l-4 4m0 0l-4-4m4 4V4" /></svg>
+									</div>
+									<div>
+										<strong className="block text-gray-800">Import:</strong>
+										<span>Use the <strong>Import</strong> action in the library to upload a transcript CSV, review the parsed results, and apply them to the active transcript.</span>
+									</div>
+								</li>
 							</ul>
 						</div>
 
@@ -203,8 +212,106 @@ function TrainingModule({ onBack }) {
 			),
 		},
 		{
+			id: "imports",
+			title: "3. Transcript Import",
+			content: (
+				<div className="space-y-8">
+					<div>
+						<h3 className="text-2xl font-bold text-gray-800 mb-3">
+							Transcript Import Workflow
+						</h3>
+						<p className="text-gray-700 leading-relaxed">
+							The import feature reads transcript CSV files and converts them into calculator terms and course rows. Import is launched from the <strong>Transcript Library</strong>, and every file should be reviewed before you confirm it.
+						</p>
+					</div>
+
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+							<h4 className="font-bold text-indigo-700 mb-4">What Import Brings In</h4>
+							<ul className="space-y-3 text-sm text-gray-600">
+								<li><strong className="text-gray-800">Terms:</strong> Recognized semester labels become calculator terms in transcript order.</li>
+								<li><strong className="text-gray-800">Courses:</strong> Each imported row keeps the course code, units, and grade.</li>
+								<li><strong className="text-gray-800">Local only:</strong> Course titles are not stored. The import keeps the transcript compact and GPA-focused.</li>
+								<li><strong className="text-gray-800">Transfer sections:</strong> Transfer terms from the file are ignored and listed separately in diagnostics.</li>
+							</ul>
+						</div>
+
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+							<h4 className="font-bold text-indigo-700 mb-4">Recognized Term Formats</h4>
+							<div className="space-y-3 text-sm text-gray-600">
+								<p>The parser supports common semester and block-style headers, including:</p>
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono text-gray-700">
+									<div className="bg-gray-50 border border-gray-200 rounded-lg p-3">2023 Fall Semester</div>
+									<div className="bg-gray-50 border border-gray-200 rounded-lg p-3">2002 Second Summer Block</div>
+									<div className="bg-gray-50 border border-gray-200 rounded-lg p-3">2022 Fall Block 2</div>
+									<div className="bg-gray-50 border border-gray-200 rounded-lg p-3">2026 Block 1</div>
+								</div>
+								<p className="text-xs text-gray-500">
+									If a term-like line is not recognized, it will appear in the import warnings instead of being silently dropped.
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
+						<h4 className="font-bold text-indigo-900 mb-4">Import Steps</h4>
+						<ol className="list-decimal pl-5 space-y-3 text-sm text-indigo-950">
+							<li>Open the <strong>Transcript Library</strong> from the floating button in the bottom-left corner.</li>
+							<li>Click <strong>Import</strong> and choose the transcript CSV file from your computer.</li>
+							<li>Review the preview panel, detected terms, skipped lines, and any import warnings before applying the file.</li>
+							<li>Select the import mode in the modal header. <strong>Replace</strong> is the default and fully overwrites the active transcript with the imported terms.</li>
+							<li>Confirm the import only after the parsed terms and course counts match the source transcript.</li>
+						</ol>
+					</div>
+
+					<div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+							<h4 className="font-bold text-gray-800 mb-3">Replace</h4>
+							<p className="text-sm text-gray-600">
+								Use when the uploaded file should become the new full transcript. Existing terms in the active record are removed.
+							</p>
+						</div>
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+							<h4 className="font-bold text-gray-800 mb-3">Append</h4>
+							<p className="text-sm text-gray-600">
+								Use when the imported terms should be added after the current transcript without altering existing terms.
+							</p>
+						</div>
+						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+							<h4 className="font-bold text-gray-800 mb-3">Merge</h4>
+							<p className="text-sm text-gray-600">
+								Use when matching term names should receive the new rows while unmatched imported terms are added as new terms.
+							</p>
+						</div>
+					</div>
+
+					<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+						<h4 className="font-bold text-indigo-700 mb-4">Diagnostics You Should Always Review</h4>
+						<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 text-sm text-gray-600">
+							<div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+								<div className="font-semibold text-gray-800 mb-1">Parsed Terms</div>
+								<p>Confirms how many terms were created from the file.</p>
+							</div>
+							<div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+								<div className="font-semibold text-gray-800 mb-1">Detected Terms</div>
+								<p>Shows the exact headers the parser recognized as term boundaries.</p>
+							</div>
+							<div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+								<div className="font-semibold text-gray-800 mb-1">Skipped Lines</div>
+								<p>Shows rows the parser ignored, including unsupported or misplaced data.</p>
+							</div>
+							<div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+								<div className="font-semibold text-gray-800 mb-1">Warnings</div>
+								<p>Highlights empty terms, duplicate courses, unusual order, and unknown headers.</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			),
+		},
+		{
 			id: "transfers",
-			title: "3. Transfer Credits",
+			title: "4. Transfer Credits",
 			content: (
 				<div className="space-y-6">
 					<div>
@@ -258,7 +365,7 @@ function TrainingModule({ onBack }) {
 		},
 		{
 			id: "grades",
-			title: "4. Grading Scale",
+			title: "5. Grading Scale",
 			content: (
 				<div className="space-y-6">
 					<div>
@@ -334,7 +441,7 @@ function TrainingModule({ onBack }) {
 		},
 		{
 			id: "retakes",
-			title: "5. Retake Logic",
+			title: "6. Retake Logic",
 			content: (
 				<div className="space-y-8">
 					<div>
@@ -410,7 +517,7 @@ function TrainingModule({ onBack }) {
 		},
 		{
 			id: "equivalences",
-			title: "6. Equivalences",
+			title: "7. Equivalences",
 			content: (
 				<div className="space-y-6">
 					<div>
@@ -577,6 +684,16 @@ function Quiz() {
 		},
 		{
 			id: 4,
+			q: "What is the default import mode when the Import Transcript modal opens?",
+			options: [
+				"Append",
+				"Merge",
+				"Replace",
+			],
+			correct: 2,
+		},
+		{
+			id: 5,
 			q: "What happens to your data if you close the browser tab?",
 			options: [
 				"It is lost immediately.",
@@ -586,7 +703,7 @@ function Quiz() {
 			correct: 1,
 		},
 		{
-			id: 5,
+			id: 6,
 			q: "What does 'UW' stand for and how is it calculated?",
 			options: [
 				"Unofficial Withdrawal; calculated as 0.0 (F).",
