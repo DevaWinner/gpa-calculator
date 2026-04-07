@@ -284,13 +284,15 @@ export const parsePastedTranscript = (text) => {
 			continue;
 		}
 
-		// Check if this is a course code (e.g., "FHGEN110", "GE103", "REL261")
-		const courseCodeMatch = line.match(/^([A-Z]{2,6}\d{2,4}[A-Z]?)$/i);
+		// Check if this is a course code (e.g., "FHGEN110", "GE103", "REL 275C", "REL  275C")
+		// Allow optional spaces between letters and numbers
+		const courseCodeMatch = line.match(/^([A-Z]{2,6})\s*(\d{2,4}[A-Z]?)$/i);
 		if (courseCodeMatch) {
 			// Finalize previous course if any
 			finalizeCourse();
 			
-			pendingCourseCode = courseCodeMatch[1].toUpperCase();
+			// Combine without spaces
+			pendingCourseCode = (courseCodeMatch[1] + courseCodeMatch[2]).toUpperCase();
 			continue;
 		}
 
