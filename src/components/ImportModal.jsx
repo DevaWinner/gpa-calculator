@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { parseTranscriptCSV } from "../utils/csvParser";
+import { parsePastedTranscript } from "../utils/pasteParser";
 
 const IMPORT_MODES = [
 	{
@@ -49,6 +50,8 @@ function IssueList({ title, issues, tone }) {
 
 function ImportModal({ onClose, onImport }) {
 	const [file, setFile] = useState(null);
+	const [pastedText, setPastedText] = useState("");
+	const [inputMethod, setInputMethod] = useState("paste"); // "paste" or "file"
 	const [previewData, setPreviewData] = useState(null);
 	const [error, setError] = useState("");
 	const [importMode, setImportMode] = useState("replace");
@@ -89,6 +92,36 @@ function ImportModal({ onClose, onImport }) {
 			}
 		};
 		reader.readAsText(selected);
+	};
+
+	const handlePasteChange = (event) => {
+		const text = event.target.value;
+		setPastedText(text);
+		setError("");
+		setPreviewData(null);
+
+		if (!text.trim()) {
+			return;
+		}
+
+		try {
+			const parsed = parsePastedTranscript(text);
+			setPreviewData(parsed);
+
+			if (parsed.terms.length === 0) {
+				setError("No terms found. Review the diagnostics below.");
+			}
+		} catch (parseError) {
+			setError(`Failed to parse text: ${parseError.message}`);
+		}
+	};
+
+	const handleInputMethodChange = (method) => {
+		setInputMethod(method);
+		setError("");
+		setPreviewData(null);
+		setFile(null);
+		setPastedText("");
 	};
 
 	const handleConfirm = () => {
@@ -145,27 +178,74 @@ function ImportModal({ onClose, onImport }) {
 				</div>
 
 				<div className="p-6 overflow-y-auto space-y-5">
-					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-2">Upload CSV File</label>
-						<input
-							type="file"
-							accept=".csv,.txt"
-							onChange={handleFileChange}
-							className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-						/>
-						<p className="text-xs text-gray-500 mt-2 leading-relaxed">
-							Upload a CSV file exported from Anthology portal.
-							<br />
-							<span className="block mt-1">
-								<strong>Instructions:</strong> Click on <strong>Export</strong> at the top of your transcript, then choose the <strong>CSV (Delimited by comma)</strong> option.
-							</span>
-							{file && (
-								<span className="block mt-2 text-gray-700">
-									Selected file: <strong>{file.name}</strong>
-								</span>
-							)}
-						</p>
+					{/* Input Method Tabs */}
+					<div className="flex gap-2 border-b border-gray-200 pb-3">
+						<button
+							type="button"
+							onClick={() => handleInputMethodChange("paste")}
+							className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+								inputMethod === "paste"
+									? "bg-indigo-100 text-indigo-700"
+									: "text-gray-600 hover:bg-gray-100"
+							}`}
+						>
+							📋 Paste Text
+						</button>
+						<button
+							type="button"
+							onClick={() => handleInputMethodChange("file")}
+							className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+								inputMethod === "file"
+									? "bg-indigo-100 text-indigo-700"
+									: "text-gray-600 hover:bg-gray-100"
+							}`}
+						>
+							📁 Upload File
+						</button>
 					</div>
+
+					{/* Paste Input */}
+					{inputMethod === "paste" && (
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-2">
+								Paste Transcript Text
+							</label>
+							<textarea
+								value={pastedText}
+								onChange={handlePasteChange}
+								placeholder="Copy your transcript from the Anthology portal and paste it here..."
+								className="block w-full h-48 text-sm text-gray-700 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none font-mono"
+							/>
+							<p className="text-xs text-gray-500 mt-2 leading-relaxed">
+								<strong>Instructions:</strong> Open your transcript in Anthology, select all the text (Ctrl+A), copy it (Ctrl+C), and paste it above (Ctrl+V).
+							</p>
+						</div>
+					)}
+
+					{/* File Upload Input */}
+					{inputMethod === "file" && (
+						<div>
+							<label className="block text-sm font-medium text-gray-700 mb-2">Upload CSV File</label>
+							<input
+								type="file"
+								accept=".csv,.txt"
+								onChange={handleFileChange}
+								className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+							/>
+							<p className="text-xs text-gray-500 mt-2 leading-relaxed">
+								Upload a CSV file exported from Anthology portal.
+								<br />
+								<span className="block mt-1">
+									<strong>Instructions:</strong> Click on <strong>Export</strong> at the top of your transcript, then choose the <strong>CSV (Delimited by comma)</strong> option.
+								</span>
+								{file && (
+									<span className="block mt-2 text-gray-700">
+										Selected file: <strong>{file.name}</strong>
+									</span>
+								)}
+							</p>
+						</div>
+					)}
 
 					{error && (
 						<div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">
