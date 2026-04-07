@@ -65,7 +65,9 @@ const SKIP_PATTERNS = [
 const normalizeSpaces = (value = "") => value.replace(/\s+/g, " ").trim();
 
 const normalizeGrade = (value = "") => {
-	const normalized = normalizeSpaces(value).split(" ")[0].toUpperCase();
+	// Remove ** suffix and normalize
+	const cleaned = (value || "").replace(/\s*\*+\s*$/, "").trim();
+	const normalized = normalizeSpaces(cleaned).split(" ")[0].toUpperCase();
 	return GRADE_ALIASES[normalized] || normalized;
 };
 
@@ -294,9 +296,9 @@ export const parsePastedTranscript = (text) => {
 
 		// If we have a pending course code, collect data
 		if (pendingCourseCode) {
-			// Check if this is a grade (single letter with optional +/-)
-			if (/^[A-Z][+-]?\s*$/i.test(line)) {
-				pendingCredits.push(line.trim());
+			// Check if this is a grade (single letter with optional +/- and optional **)
+			if (/^[A-Z][+-]?\s*\*{0,2}\s*$/i.test(line)) {
+				pendingCredits.push(line.replace(/\s*\*+\s*$/, "").trim());
 				// After getting grade, try to finalize
 				finalizeCourse();
 				continue;
@@ -308,8 +310,8 @@ export const parsePastedTranscript = (text) => {
 				continue;
 			}
 			
-			// Check if this line has credits and grade together (e.g., "3.00 3.00 10.20 B+")
-			const combinedMatch = line.match(/^(\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+([A-Z][+-]?)\s*$/i);
+			// Check if this line has credits and grade together (e.g., "3.00 3.00 10.20 B+ **")
+			const combinedMatch = line.match(/^(\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+([A-Z][+-]?)\s*\*{0,2}\s*$/i);
 			if (combinedMatch) {
 				pendingCredits.push(combinedMatch[1], combinedMatch[2], combinedMatch[3], combinedMatch[4]);
 				finalizeCourse();
