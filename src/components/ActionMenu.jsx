@@ -285,7 +285,7 @@ function ActionMenu({
 							<button
 								key={termGroup.termIndex}
 								onClick={() => handleTermSelect(termGroup)}
-								className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 transition-colors flex items-center justify-between"
+								className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors flex items-center justify-between"
 							>
 								<span className="font-medium">
 									{termGroup.termName || `Term ${termGroup.termIndex}`}

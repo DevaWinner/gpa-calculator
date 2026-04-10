@@ -65,7 +65,7 @@ function CourseRow({
 	// Base cell classes
 	const baseCellClass = "p-2";
 	const inputClass =
-		"w-full p-2 text-sm rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-transparent transition-all";
+		"w-full p-2 text-sm rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-transparent transition-all";
 	const displayCellClass = "text-center text-sm text-gray-600 font-medium";
 
 	return (

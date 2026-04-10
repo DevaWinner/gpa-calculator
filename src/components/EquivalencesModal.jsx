@@ -81,31 +81,31 @@ function EquivalencesModal({
 					</p>
 
 					{/* Add New */}
-					<div className="flex gap-2 mb-6 items-end bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+					<div className="flex gap-2 mb-6 items-end bg-blue-50/50 p-4 rounded-xl border border-blue-100">
 						<div className="flex-1">
-							<label className="block text-xs font-bold text-indigo-900 uppercase tracking-wider mb-1">Course A</label>
+							<label className="block text-xs font-bold text-blue-900 uppercase tracking-wider mb-1">Course A</label>
 							<input
 								type="text"
 								value={courseA}
 								onChange={(e) => setCourseA(e.target.value.replace(/\s+/g, '').toUpperCase())}
-								className="w-full p-2 text-sm rounded-md border border-indigo-200 focus:ring-indigo-500 focus:border-indigo-500"
+								className="w-full p-2 text-sm rounded-md border border-blue-200 focus:ring-blue-500 focus:border-blue-500"
 								placeholder="MATH101"
 							/>
 						</div>
-						<div className="pb-2 text-indigo-300 font-bold">＝</div>
+						<div className="pb-2 text-blue-300 font-bold">＝</div>
 						<div className="flex-1">
-							<label className="block text-xs font-bold text-indigo-900 uppercase tracking-wider mb-1">Course B</label>
+							<label className="block text-xs font-bold text-blue-900 uppercase tracking-wider mb-1">Course B</label>
 							<input
 								type="text"
 								value={courseB}
 								onChange={(e) => setCourseB(e.target.value.replace(/\s+/g, '').toUpperCase())}
-								className="w-full p-2 text-sm rounded-md border border-indigo-200 focus:ring-indigo-500 focus:border-indigo-500"
+								className="w-full p-2 text-sm rounded-md border border-blue-200 focus:ring-blue-500 focus:border-blue-500"
 								placeholder="MATH100"
 							/>
 						</div>
 						<button
 							onClick={handleAdd}
-							className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-md hover:bg-indigo-700 transition-all shadow-sm active:scale-95"
+							className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-md hover:bg-blue-700 transition-all shadow-sm active:scale-95"
 						>
 							Add
 						</button>

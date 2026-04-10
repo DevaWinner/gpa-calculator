@@ -27,7 +27,7 @@ function TransferCredits({ transfers, setTransfers }) {
 					<h2 className="text-lg font-bold text-gray-800">Transfer Credits</h2>
 					<button
 						onClick={addTransfer}
-						className="inline-flex items-center gap-1 px-3 py-1 text-sm text-indigo-600 hover:text-indigo-800 transition-colors"
+						className="inline-flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
 					>
 						<svg
 							className="w-4 h-4"
@@ -85,7 +85,7 @@ function TransferCredits({ transfers, setTransfers }) {
 														e.target.value.replace(/\s+/g, '').toUpperCase()
 													)
 												}
-												className="w-full p-2 text-sm rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-transparent transition-all uppercase"
+												className="w-full p-2 text-sm rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-transparent transition-all uppercase"
 												placeholder="SCHOOL NAME"
 												style={{ textTransform: "uppercase" }}
 											/>
@@ -101,7 +101,7 @@ function TransferCredits({ transfers, setTransfers }) {
 														parseFloat(e.target.value) || 0
 													)
 												}
-												className="w-full p-2 text-sm text-center rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-transparent transition-all"
+												className="w-full p-2 text-sm text-center rounded-md border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-transparent transition-all"
 												placeholder="0.00"
 												step="0.01"
 												min="0"

@@ -39,15 +39,15 @@ function CalculationDetailsModal({ title, data, onClose }) {
 
 									<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
 
-										<div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+										<div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
 
-											<div className="text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+											<div className="text-xs text-blue-600 font-semibold uppercase tracking-wider mb-1">
 
 												GPA
 
 											</div>
 
-											<div className="text-2xl font-bold text-indigo-900">
+											<div className="text-2xl font-bold text-blue-900">
 
 												{fmt(data.gpa, "gpa")}
 

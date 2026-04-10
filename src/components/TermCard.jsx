@@ -235,7 +235,7 @@ function TermCard({
 					{isExperimental && (
 						<button
 							onClick={() => toggleTermMinimize(term.termIndex)}
-							className="p-2 text-gray-400 hover:text-indigo-600 transition-colors"
+							className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
 							title={term.isMinimized ? "Expand Term" : "Minimize Term"}
 						>
 							{term.isMinimized ? (
@@ -364,7 +364,7 @@ function TermCard({
 									<td colSpan="6" className="px-3 py-3 text-center">
 										<button
 											onClick={() => addCourse(term.termIndex)}
-											className="inline-flex items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors group tour-add-course-btn"
+											className="inline-flex items-center justify-center text-gray-400 hover:text-blue-600 transition-colors group tour-add-course-btn"
 										>
 											<svg
 												className="w-5 h-5"
@@ -400,7 +400,7 @@ function TermCard({
 								Term GPA: <span>{fmt(termData.gpa, "gpa")}</span>
 								<button
 									onClick={() => setActiveModal("term")}
-									className="text-gray-400 hover:text-indigo-600 transition-colors tour-term-gpa-info-btn"
+									className="text-gray-400 hover:text-blue-600 transition-colors tour-term-gpa-info-btn"
 								>
 									<svg
 										className="w-4 h-4"
@@ -433,7 +433,7 @@ function TermCard({
 								Cum GPA: <span>{fmt(cumData.gpa, "gpa")}</span>
 								<button
 									onClick={() => setActiveModal("cum")}
-									className="text-gray-400 hover:text-indigo-600 transition-colors tour-cum-gpa-info-btn"
+									className="text-gray-400 hover:text-blue-600 transition-colors tour-cum-gpa-info-btn"
 								>
 									<svg
 										className="w-4 h-4"
