@@ -199,7 +199,7 @@ export const parsePastedTranscript = (text) => {
 			
 			for (const val of pendingCredits) {
 				const trimmed = val.trim();
-				if (/^[A-Z][+-]?$/i.test(trimmed)) {
+				if (/^(?:[A-Z][+-]?|UW|WT)$/i.test(trimmed)) {
 					grade = normalizeGrade(trimmed);
 				} else if (/^\d+\.?\d*$/.test(trimmed)) {
 					numericCredits.push(parseFloat(trimmed));
@@ -298,8 +298,8 @@ export const parsePastedTranscript = (text) => {
 
 		// If we have a pending course code, collect data
 		if (pendingCourseCode) {
-			// Check if this is a grade (single letter with optional +/- and optional **)
-			if (/^[A-Z][+-]?\s*\*{0,2}\s*$/i.test(line)) {
+			// Check if this is a grade (single letter, UW, or WT with optional +/- and optional **)
+			if (/^(?:[A-Z][+-]?|UW|WT)\s*\*{0,2}\s*$/i.test(line)) {
 				pendingCredits.push(line.replace(/\s*\*+\s*$/, "").trim());
 				// After getting grade, try to finalize
 				finalizeCourse();
@@ -313,7 +313,7 @@ export const parsePastedTranscript = (text) => {
 			}
 			
 			// Check if this line has credits and grade together (e.g., "3.00 3.00 10.20 B+ **")
-			const combinedMatch = line.match(/^(\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+([A-Z][+-]?)\s*\*{0,2}\s*$/i);
+			const combinedMatch = line.match(/^(\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+([A-Z][+-]?|UW|WT)\s*\*{0,2}\s*$/i);
 			if (combinedMatch) {
 				pendingCredits.push(combinedMatch[1], combinedMatch[2], combinedMatch[3], combinedMatch[4]);
 				finalizeCourse();
