@@ -10,7 +10,7 @@ function TrainingModule({ onBack }) {
 			content: (
 				<div className="space-y-6">
 					<div>
-						<h3 className="text-2xl font-bold text-indigo-900 mb-2">
+						<h3 className="text-2xl font-bold text-blue-900 mb-2">
 							Course Objective
 						</h3>
 						<p className="text-gray-700 leading-relaxed">
@@ -22,19 +22,19 @@ function TrainingModule({ onBack }) {
 						<h4 className="font-semibold text-gray-800 mb-4 text-lg">Key Learning Outcomes</h4>
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div className="flex items-start">
-								<div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">1</div>
+								<div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold mr-3">1</div>
 								<p className="text-gray-600 text-sm">Master accurate data entry and transcript imports for terms, courses, and external transfer credits.</p>
 							</div>
 							<div className="flex items-start">
-								<div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">2</div>
+								<div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold mr-3">2</div>
 								<p className="text-gray-600 text-sm">Understand the specific grading scale and the impact of special grades like 'W', 'UW', and 'E'.</p>
 							</div>
 							<div className="flex items-start">
-								<div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">3</div>
+								<div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold mr-3">3</div>
 								<p className="text-gray-600 text-sm">Navigate the complex "Retake Policy" logic, including automatic name matching and manual overrides.</p>
 							</div>
 							<div className="flex items-start">
-								<div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">4</div>
+								<div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold mr-3">4</div>
 								<p className="text-gray-600 text-sm">Analyze "what-if" scenarios to see how future grades could repair a cumulative GPA.</p>
 							</div>
 						</div>
@@ -58,7 +58,7 @@ function TrainingModule({ onBack }) {
 
 					<div className="grid grid-cols-1 gap-6">
 						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-							<h4 className="font-bold text-indigo-700 mb-4 flex items-center">
+							<h4 className="font-bold text-blue-700 mb-4 flex items-center">
 								<svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
 								Managing Terms
 							</h4>
@@ -83,7 +83,7 @@ function TrainingModule({ onBack }) {
 						</div>
 
 						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-							<h4 className="font-bold text-indigo-700 mb-4 flex items-center">
+							<h4 className="font-bold text-blue-700 mb-4 flex items-center">
 								<svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
 								Course Management
 							</h4>
@@ -110,7 +110,7 @@ function TrainingModule({ onBack }) {
 						</div>
 					</div>
 
-					<div className="bg-indigo-900 text-indigo-100 p-4 rounded-lg flex items-center justify-between">
+					<div className="bg-blue-900 text-blue-100 p-4 rounded-lg flex items-center justify-between">
 						<div>
 							<span className="font-bold text-white block">Auto-Save Enabled</span>
 							<span className="text-sm opacity-80">Your work is saved locally to your browser instantly.</span>
@@ -138,13 +138,13 @@ function TrainingModule({ onBack }) {
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-							<h4 className="font-bold text-indigo-700 mb-4 flex items-center">
+							<h4 className="font-bold text-blue-700 mb-4 flex items-center">
 								<svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
 								Library Features
 							</h4>
 							<ul className="space-y-4 text-sm text-gray-600">
 								<li className="flex items-start gap-2">
-									<div className="p-1 bg-indigo-100 rounded text-indigo-700 shrink-0 mt-0.5">
+									<div className="p-1 bg-blue-100 rounded text-blue-700 shrink-0 mt-0.5">
 										<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
 									</div>
 									<div>
@@ -162,7 +162,7 @@ function TrainingModule({ onBack }) {
 									</div>
 								</li>
 								<li className="flex items-start gap-2">
-									<div className="p-1 bg-indigo-100 rounded text-indigo-700 shrink-0 mt-0.5">
+									<div className="p-1 bg-blue-100 rounded text-blue-700 shrink-0 mt-0.5">
 										<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
 									</div>
 									<div>
@@ -183,7 +183,7 @@ function TrainingModule({ onBack }) {
 						</div>
 
 						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-							<h4 className="font-bold text-indigo-700 mb-4 flex items-center">
+							<h4 className="font-bold text-blue-700 mb-4 flex items-center">
 								<svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
 								Editing & Deleting
 							</h4>
@@ -227,7 +227,7 @@ function TrainingModule({ onBack }) {
 
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-							<h4 className="font-bold text-indigo-700 mb-4">What Import Brings In</h4>
+							<h4 className="font-bold text-blue-700 mb-4">What Import Brings In</h4>
 							<ul className="space-y-3 text-sm text-gray-600">
 								<li><strong className="text-gray-800">Terms:</strong> Recognized semester labels become calculator terms in transcript order.</li>
 								<li><strong className="text-gray-800">Courses:</strong> Each imported row keeps the course code, units, and grade.</li>
@@ -237,7 +237,7 @@ function TrainingModule({ onBack }) {
 						</div>
 
 						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-							<h4 className="font-bold text-indigo-700 mb-4">Recognized Term Formats</h4>
+							<h4 className="font-bold text-blue-700 mb-4">Recognized Term Formats</h4>
 							<div className="space-y-3 text-sm text-gray-600">
 								<p>The parser supports common semester and block-style headers, including:</p>
 								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono text-gray-700">
@@ -253,9 +253,9 @@ function TrainingModule({ onBack }) {
 						</div>
 					</div>
 
-					<div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
-						<h4 className="font-bold text-indigo-900 mb-4">Import Steps</h4>
-						<ol className="list-decimal pl-5 space-y-3 text-sm text-indigo-950">
+					<div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
+						<h4 className="font-bold text-blue-900 mb-4">Import Steps</h4>
+						<ol className="list-decimal pl-5 space-y-3 text-sm text-blue-950">
 							<li>Open the <strong>Transcript Library</strong> from the floating button in the bottom-left corner.</li>
 							<li>Click <strong>Import</strong> and choose the transcript CSV file from your computer.</li>
 							<li>Review the preview panel, detected terms, skipped lines, and any import warnings before applying the file.</li>
@@ -268,7 +268,7 @@ function TrainingModule({ onBack }) {
 						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
 							<h4 className="font-bold text-gray-800 mb-3">Replace</h4>
 							<p className="text-sm text-gray-600">
-								Use when the uploaded file should become the new full transcript. Existing terms in the active record are removed.
+								Use when the pasted text should become the new full transcript. Existing terms in the active record are removed.
 							</p>
 						</div>
 						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
@@ -286,7 +286,7 @@ function TrainingModule({ onBack }) {
 					</div>
 
 					<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-						<h4 className="font-bold text-indigo-700 mb-4">Diagnostics You Should Always Review</h4>
+						<h4 className="font-bold text-blue-700 mb-4">Diagnostics You Should Always Review</h4>
 						<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 text-sm text-gray-600">
 							<div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
 								<div className="font-semibold text-gray-800 mb-1">Parsed Terms</div>
@@ -379,8 +379,8 @@ function TrainingModule({ onBack }) {
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 						<div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-							<div className="bg-indigo-50 px-6 py-3 border-b border-indigo-100">
-								<h4 className="font-bold text-indigo-900 text-sm uppercase tracking-wide">Standard Grades</h4>
+							<div className="bg-blue-50 px-6 py-3 border-b border-blue-100">
+								<h4 className="font-bold text-blue-900 text-sm uppercase tracking-wide">Standard Grades</h4>
 							</div>
 							<table className="min-w-full text-sm">
 								<thead className="bg-gray-50">
@@ -456,7 +456,7 @@ function TrainingModule({ onBack }) {
 					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 						{/* Card 1: Visual Indicators */}
 						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm lg:col-span-1">
-							<h4 className="font-bold text-indigo-700 mb-4">Visual Indicators</h4>
+							<h4 className="font-bold text-blue-700 mb-4">Visual Indicators</h4>
 							<div className="flex items-center gap-3 mb-4">
 								<span className="text-2xl font-black text-orange-500">**</span>
 								<p className="text-sm text-gray-600">The <strong>exclusion marker</strong>.</p>
@@ -468,7 +468,7 @@ function TrainingModule({ onBack }) {
 
 						{/* Card 2: Logic Breakdown */}
 						<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm lg:col-span-2">
-							<h4 className="font-bold text-indigo-700 mb-4">How it Works</h4>
+							<h4 className="font-bold text-blue-700 mb-4">How it Works</h4>
 							<div className="space-y-4 text-sm text-gray-600">
 								<div className="flex gap-3">
 									<div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs shrink-0">1</div>
@@ -490,8 +490,8 @@ function TrainingModule({ onBack }) {
 						</div>
 					</div>
 
-					<div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
-						<h4 className="font-bold text-indigo-900 mb-4">Linking Methods</h4>
+					<div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
+						<h4 className="font-bold text-blue-900 mb-4">Linking Methods</h4>
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 							<div>
 								<h5 className="font-bold text-gray-800 mb-2">Method A: Automatic</h5>
@@ -506,7 +506,7 @@ function TrainingModule({ onBack }) {
 								<p className="text-sm text-gray-600 mb-2">Used when names differ (e.g., renumbering).</p>
 								<div className="bg-white p-3 rounded border border-gray-200 text-xs font-mono text-gray-500">
 									Term 1: MATH 101 (F)<br/>
-									Term 2: MATH 200 (A) <span className="text-indigo-600">← Manually Linked</span>
+									Term 2: MATH 200 (A) <span className="text-blue-600">← Manually Linked</span>
 								</div>
 								<p className="text-xs text-gray-500 mt-2 italic">Use the 3-dot menu on a course row to manually link it to a previous attempt.</p>
 							</div>
@@ -551,9 +551,9 @@ function TrainingModule({ onBack }) {
 						</div>
 					</div>
 
-					<div className="bg-purple-50 p-6 rounded-xl border border-purple-100">
-						<h4 className="font-bold text-purple-900 mb-2">How to Configure</h4>
-						<ol className="list-decimal pl-5 space-y-2 text-sm text-purple-800">
+					<div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
+						<h4 className="font-bold text-blue-900 mb-2">How to Configure</h4>
+						<ol className="list-decimal pl-5 space-y-2 text-sm text-blue-800">
 							<li>Click the <strong>"Equivalences"</strong> button in the main header (top right).</li>
 							<li>In the modal, type the two course codes you want to link.</li>
 							<li>Click <strong>Add</strong>. The rule is now active for the entire transcript.</li>
@@ -586,16 +586,16 @@ function TrainingModule({ onBack }) {
 	return (
 		<div className="fixed inset-0 z-50 flex flex-col h-screen bg-gray-50">
 			{/* Header */}
-			<div className="bg-indigo-700 px-6 py-4 text-white shrink-0 shadow-md flex justify-between items-center">
+			<div className="bg-blue-700 px-6 py-4 text-white shrink-0 shadow-md flex justify-between items-center">
 				<div>
 					<h2 className="text-2xl font-black">System Training Module</h2>
-					<p className="text-indigo-200 text-sm">
+					<p className="text-blue-200 text-sm">
 						Comprehensive guide to the Transcript calculator System v5.0
 					</p>
 				</div>
 				<button
 					onClick={onBack}
-					className="flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-medium transition-colors border border-indigo-500 shadow-sm"
+					className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-white font-medium transition-colors border border-blue-500 shadow-sm"
 				>
 					<svg
 						className="w-5 h-5 mr-2"
@@ -624,7 +624,7 @@ function TrainingModule({ onBack }) {
 									onClick={() => setActiveTab(m.id)}
 									className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
 										activeTab === m.id
-											? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+											? "bg-blue-50 text-blue-700 border border-blue-200"
 											: "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
 									}`}
 								>
@@ -757,7 +757,7 @@ function Quiz() {
 									name={`question-${q.id}`}
 									checked={answers[q.id] === optIdx}
 									onChange={() => handleOptionChange(q.id, optIdx)}
-									className="text-indigo-600 focus:ring-indigo-500"
+									className="text-blue-600 focus:ring-blue-500"
 								/>
 								<span className="text-gray-700 text-sm">{opt}</span>
 							</label>
@@ -770,13 +770,13 @@ function Quiz() {
 				<button
 					onClick={checkAnswers}
 					disabled={Object.keys(answers).length < questions.length}
-					className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+					className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 				>
 					Submit Assessment
 				</button>
 				{showResults && (
 					<div className="text-lg font-bold">
-						Score: <span className={getScore() === questions.length ? "text-green-600" : "text-indigo-600"}>
+						Score: <span className={getScore() === questions.length ? "text-green-600" : "text-blue-600"}>
 							{getScore()} / {questions.length}
 						</span>
 					</div>
