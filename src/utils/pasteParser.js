@@ -120,9 +120,14 @@ const extractTermHeader = (line) => {
 	}
 
 	// Check if it looks like a term header but didn't match
-	if (/\d{4}/.test(cleaned) && /\b(Fall|Winter|Spring|Summer|Semester|Term|Block)\b/i.test(cleaned)) {
+	if (
+		/\d{4}/.test(cleaned) &&
+		/\b(Fall|Winter|Spring|Summer|Semester|Term|Block)\b/i.test(cleaned)
+	) {
 		// Try to extract just the term part
-		const termMatch = cleaned.match(/(\d{4}\s+(?:Semester\s+)?(?:Fall|Winter|Spring|Summer|Term\s+\d+|Block\s+\d+)(?:\s+Semester)?)/i);
+		const termMatch = cleaned.match(
+			/(\d{4}\s+(?:Semester\s+)?(?:Fall|Winter|Spring|Summer|Term\s+\d+|Block\s+\d+)(?:\s+Semester)?)/i,
+		);
 		if (termMatch) {
 			return {
 				type: "term",
@@ -196,7 +201,7 @@ export const parsePastedTranscript = (text) => {
 			// Find the grade in pendingCredits (it's the non-numeric value)
 			let grade = null;
 			const numericCredits = [];
-			
+
 			for (const val of pendingCredits) {
 				const trimmed = val.trim();
 				if (/^(?:[A-Z][+-]?|UW|WT)$/i.test(trimmed)) {
@@ -217,7 +222,7 @@ export const parsePastedTranscript = (text) => {
 				rowCounter += 1;
 			}
 		}
-		
+
 		pendingCourseCode = null;
 		pendingCourseName = null;
 		pendingCredits = [];
@@ -252,10 +257,11 @@ export const parsePastedTranscript = (text) => {
 						code: "unknown-term-header",
 						severity: "warning",
 						title: "Unrecognized term header",
-						detail: "This line looks like a term header but did not match any supported pattern.",
+						detail:
+							"This line looks like a term header but did not match any supported pattern.",
 						lineNumber,
 						rawLine: termHeader.rawText,
-					})
+					}),
 				);
 			}
 
@@ -284,15 +290,19 @@ export const parsePastedTranscript = (text) => {
 			continue;
 		}
 
-		// Check if this is a course code (e.g., "FHGEN110", "GE103", "REL 275C", "REL  275C")
-		// Allow optional spaces between letters and numbers
-		const courseCodeMatch = line.match(/^([A-Z]{2,6})\s*(\d{2,4}[A-Z]?)$/i);
+		// Check if this is a course code (e.g., "FHGEN110", "GE103", "REL 275C", "PE-C160", "ED/P205", "PH.S100", "B211")
+		// Allow one-letter prefixes plus hyphenated, slash-separated, or dotted department codes.
+		const courseCodeMatch = line.match(
+			/^([A-Z]{1,6}(?:\s*[-/.]\s*[A-Z]{1,6})*)\s*(\d{1,4}[A-Z]?)$/i,
+		);
 		if (courseCodeMatch) {
 			// Finalize previous course if any
 			finalizeCourse();
-			
+
 			// Combine without spaces
-			pendingCourseCode = (courseCodeMatch[1] + courseCodeMatch[2]).toUpperCase();
+			pendingCourseCode = (
+				courseCodeMatch[1] + courseCodeMatch[2]
+			).toUpperCase();
 			continue;
 		}
 
@@ -305,21 +315,28 @@ export const parsePastedTranscript = (text) => {
 				finalizeCourse();
 				continue;
 			}
-			
+
 			// Check if this is a credit number
 			if (/^\d+\.?\d*$/.test(line)) {
 				pendingCredits.push(line);
 				continue;
 			}
-			
+
 			// Check if this line has credits and grade together (e.g., "3.00 3.00 10.20 B+ **")
-			const combinedMatch = line.match(/^(\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+([A-Z][+-]?|UW|WT)\s*\*{0,2}\s*$/i);
+			const combinedMatch = line.match(
+				/^(\d+\.?\d*)\s+(\d+\.?\d*)\s+(\d+\.?\d*)\s+([A-Z][+-]?|UW|WT)\s*\*{0,2}\s*$/i,
+			);
 			if (combinedMatch) {
-				pendingCredits.push(combinedMatch[1], combinedMatch[2], combinedMatch[3], combinedMatch[4]);
+				pendingCredits.push(
+					combinedMatch[1],
+					combinedMatch[2],
+					combinedMatch[3],
+					combinedMatch[4],
+				);
 				finalizeCourse();
 				continue;
 			}
-			
+
 			// If not a number or grade, it's probably the course name
 			if (!pendingCourseName && line.length > 3) {
 				pendingCourseName = line;
@@ -335,7 +352,7 @@ export const parsePastedTranscript = (text) => {
 					reason: "Line did not match course code, grade, or term pattern.",
 					lineNumber,
 					rawLine: line,
-				})
+				}),
 			);
 		}
 	}
@@ -352,8 +369,8 @@ export const parsePastedTranscript = (text) => {
 		skippedLines: diagnostics.skippedLines.length,
 		ignoredTransfers: diagnostics.ignoredTransfers.length,
 		warningCount:
-			diagnostics.issues.filter((issue) => issue.severity === "warning").length +
-			validation.summary.warningCount,
+			diagnostics.issues.filter((issue) => issue.severity === "warning")
+				.length + validation.summary.warningCount,
 		errorCount:
 			diagnostics.issues.filter((issue) => issue.severity === "error").length +
 			validation.summary.errorCount,
@@ -366,7 +383,7 @@ export const parsePastedTranscript = (text) => {
 				severity: "error",
 				title: "No terms found",
 				detail: "The pasted text did not contain any recognized term headers.",
-			})
+			}),
 		);
 		diagnostics.summary.errorCount += 1;
 	}

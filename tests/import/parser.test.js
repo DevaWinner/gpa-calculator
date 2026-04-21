@@ -5,7 +5,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { parseTranscriptCSV } from "../../src/utils/csvParser.js";
-import { applyImportedTerms, deriveTermSortKey } from "../../src/utils/importUtils.js";
+import {
+	applyImportedTerms,
+	deriveTermSortKey,
+} from "../../src/utils/importUtils.js";
+import { parsePastedTranscript } from "../../src/utils/pasteParser.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,7 +23,7 @@ test("parses a basic transcript and reports skipped header lines", () => {
 	assert.equal(parsed.terms.length, 2);
 	assert.deepEqual(
 		parsed.terms.map((term) => term.name),
-		["2023 Fall Semester", "2024 Spring Semester"]
+		["2023 Fall Semester", "2024 Spring Semester"],
 	);
 	assert.equal(parsed.diagnostics.summary.parsedCourses, 3);
 	assert.equal(parsed.validation.summary.warningCount, 0);
@@ -40,31 +44,101 @@ test("parses season block headers with block numbers", () => {
 		[
 			'"2022 Fall Block 1 09/01/2022","MATH 101","","3","3","","A"',
 			'"2022 Fall Block 2 10/20/2022","ENG 201","","3","3","","B+"',
-		].join("\n")
+		].join("\n"),
 	);
 
 	assert.equal(parsed.terms.length, 2);
 	assert.deepEqual(
 		parsed.terms.map((term) => term.name),
-		["2022 Fall Block 1", "2022 Fall Block 2"]
+		["2022 Fall Block 1", "2022 Fall Block 2"],
 	);
 	assert.equal(parsed.terms[0].rows[0].name, "MATH101");
 	assert.equal(parsed.terms[1].rows[0].name, "ENG201");
 	assert.notEqual(deriveTermSortKey("2022 Fall Block 2"), null);
 	assert.ok(
-		deriveTermSortKey("2022 Fall Block 2") > deriveTermSortKey("2022 Fall Block 1")
+		deriveTermSortKey("2022 Fall Block 2") >
+			deriveTermSortKey("2022 Fall Block 1"),
 	);
 });
 
 test("normalizes imported WT grades to W", () => {
 	const parsed = parseTranscriptCSV(
-		'"2024 Spring Semester 01/08/2024","ENG 101","","3","3","","WT"'
+		'"2024 Spring Semester 01/08/2024","ENG 101","","3","3","","WT"',
 	);
 
 	assert.equal(parsed.terms.length, 1);
 	assert.equal(parsed.terms[0].rows.length, 1);
 	assert.equal(parsed.terms[0].rows[0].grade, "W");
 	assert.equal(parsed.diagnostics.summary.parsedCourses, 1);
+});
+
+test("parses pasted hyphenated and single-letter course codes", () => {
+	const parsed = parsePastedTranscript(
+		[
+			"2024 Winter Semester",
+			"PE-C160",
+			"Physical Fitness",
+			"3",
+			"3",
+			"3",
+			"A",
+			"B211",
+			"Business Ethics",
+			"4",
+			"4",
+			"4",
+			"UW **",
+		].join("\n"),
+	);
+
+	assert.equal(parsed.terms.length, 1);
+	assert.equal(parsed.terms[0].rows.length, 2);
+	assert.deepEqual(
+		parsed.terms[0].rows.map((row) => row.name),
+		["PE-C160", "B211"],
+	);
+	assert.deepEqual(
+		parsed.terms[0].rows.map((row) => row.grade),
+		["A", "UW"],
+	);
+});
+
+test("parses pasted slash-separated course codes", () => {
+	const parsed = parsePastedTranscript(
+		[
+			"2024 Fall Semester",
+			"ED/P205",
+			"Educational Psychology",
+			"3",
+			"3",
+			"3",
+			"B+",
+		].join("\n"),
+	);
+
+	assert.equal(parsed.terms.length, 1);
+	assert.equal(parsed.terms[0].rows.length, 1);
+	assert.equal(parsed.terms[0].rows[0].name, "ED/P205");
+	assert.equal(parsed.terms[0].rows[0].grade, "B+");
+});
+
+test("parses pasted dotted course codes", () => {
+	const parsed = parsePastedTranscript(
+		[
+			"2024 Spring Semester",
+			"PH.S100",
+			"Health Science",
+			"3",
+			"3",
+			"3",
+			"A-",
+		].join("\n"),
+	);
+
+	assert.equal(parsed.terms.length, 1);
+	assert.equal(parsed.terms[0].rows.length, 1);
+	assert.equal(parsed.terms[0].rows[0].name, "PH.S100");
+	assert.equal(parsed.terms[0].rows[0].grade, "A-");
 });
 
 test("reports unknown headers, course rows without terms, and ignored transfers", () => {
@@ -86,7 +160,9 @@ test("applyImportedTerms supports replace, append, and merge strategies", () => 
 			termIndex: 1,
 			name: "2023 Fall Semester",
 			isHighlighted: false,
-			rows: [{ id: "1", name: "MATH101", units: 3, grade: "B", retakeOf: null }],
+			rows: [
+				{ id: "1", name: "MATH101", units: 3, grade: "B", retakeOf: null },
+			],
 		},
 	];
 	const importedTerms = [
