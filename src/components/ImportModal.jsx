@@ -179,7 +179,7 @@ function ImportModal({ onClose, onImport }) {
 
 				<div className="p-6 overflow-y-auto space-y-5">
 					{/* Input Method Tabs */}
-					<div className="hidden gap-2 border-b border-gray-200 pb-3">
+					<div className="flex gap-2 border-b border-gray-200 pb-3">
 						<button
 							type="button"
 							onClick={() => handleInputMethodChange("paste")}
