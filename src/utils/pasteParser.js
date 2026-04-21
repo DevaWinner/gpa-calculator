@@ -284,9 +284,11 @@ export const parsePastedTranscript = (text) => {
 			continue;
 		}
 
-		// Check if this is a course code (e.g., "FHGEN110", "GE103", "REL 275C", "REL  275C")
-		// Allow optional spaces between letters and numbers
-		const courseCodeMatch = line.match(/^([A-Z]{2,6})\s*(\d{2,4}[A-Z]?)$/i);
+		// Check if this is a course code (e.g., "FHGEN110", "GE103", "REL 275C", "PE-C160", "ED/P205", "PH.S100", "B211")
+		// Allow one-letter prefixes plus hyphenated, slash-separated, or dotted department codes.
+		const courseCodeMatch = line.match(
+			/^([A-Z]{1,6}(?:\s*[-/.]\s*[A-Z]{1,6})*)\s*(\d{1,4}[A-Z]?)$/i
+		);
 		if (courseCodeMatch) {
 			// Finalize previous course if any
 			finalizeCourse();

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { parseTranscriptCSV } from "../../src/utils/csvParser.js";
 import { applyImportedTerms, deriveTermSortKey } from "../../src/utils/importUtils.js";
+import { parsePastedTranscript } from "../../src/utils/pasteParser.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,6 +66,75 @@ test("normalizes imported WT grades to W", () => {
 	assert.equal(parsed.terms[0].rows.length, 1);
 	assert.equal(parsed.terms[0].rows[0].grade, "W");
 	assert.equal(parsed.diagnostics.summary.parsedCourses, 1);
+});
+
+test("parses pasted hyphenated and single-letter course codes", () => {
+	const parsed = parsePastedTranscript(
+		[
+			"2024 Winter Semester",
+			"PE-C160",
+			"Physical Fitness",
+			"3",
+			"3",
+			"3",
+			"A",
+			"B211",
+			"Business Ethics",
+			"4",
+			"4",
+			"4",
+			"UW **",
+		].join("\n")
+	);
+
+	assert.equal(parsed.terms.length, 1);
+	assert.equal(parsed.terms[0].rows.length, 2);
+	assert.deepEqual(
+		parsed.terms[0].rows.map((row) => row.name),
+		["PE-C160", "B211"]
+	);
+	assert.deepEqual(
+		parsed.terms[0].rows.map((row) => row.grade),
+		["A", "UW"]
+	);
+});
+
+test("parses pasted slash-separated course codes", () => {
+	const parsed = parsePastedTranscript(
+		[
+			"2024 Fall Semester",
+			"ED/P205",
+			"Educational Psychology",
+			"3",
+			"3",
+			"3",
+			"B+",
+		].join("\n")
+	);
+
+	assert.equal(parsed.terms.length, 1);
+	assert.equal(parsed.terms[0].rows.length, 1);
+	assert.equal(parsed.terms[0].rows[0].name, "ED/P205");
+	assert.equal(parsed.terms[0].rows[0].grade, "B+");
+});
+
+test("parses pasted dotted course codes", () => {
+	const parsed = parsePastedTranscript(
+		[
+			"2024 Spring Semester",
+			"PH.S100",
+			"Health Science",
+			"3",
+			"3",
+			"3",
+			"A-",
+		].join("\n")
+	);
+
+	assert.equal(parsed.terms.length, 1);
+	assert.equal(parsed.terms[0].rows.length, 1);
+	assert.equal(parsed.terms[0].rows[0].name, "PH.S100");
+	assert.equal(parsed.terms[0].rows[0].grade, "A-");
 });
 
 test("reports unknown headers, course rows without terms, and ignored transfers", () => {
