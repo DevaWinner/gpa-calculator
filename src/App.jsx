@@ -25,7 +25,7 @@ import {
 } from "./utils/calculations";
 import { applyImportedTerms } from "./utils/importUtils.js";
 import { debugError } from "./utils/debug";
-import systemEquivalences from "./data/equivalences.json";
+import systemEquivalences from "./data/course-equivalencies.json";
 
 const EXPERIMENTAL_KEY = "gpa_experimental_v1";
 const SHOW_AUTO_EQUIVALENCE_LIST = false;
@@ -734,7 +734,7 @@ function App() {
 	};
 
 	// Calculate statistics
-	const excludeMap = computeRetakeExclusionsMap(terms, equivalences, isExperimental ? systemEquivalences : {}, isExperimental);
+	const excludeMap = computeRetakeExclusionsMap(terms, equivalences, systemEquivalences, false);
 	const lastTermIndex = terms.length;
 	const instStats = computeCumMetrics(terms, lastTermIndex, excludeMap);
 
@@ -774,7 +774,7 @@ function App() {
 				<EquivalencesModal
 					equivalences={equivalences}
 					setEquivalences={setEquivalences}
-					systemEquivalences={isExperimental ? systemEquivalences : {}}
+					systemEquivalences={systemEquivalences}
 					isExperimental={isExperimental}
 					showAutoEquivalenceList={SHOW_AUTO_EQUIVALENCE_LIST}
 					onClose={() => setShowEquivalences(false)}

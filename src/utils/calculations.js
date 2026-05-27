@@ -192,21 +192,6 @@ export const computeRetakeExclusionsMap = (terms, equivalences = [], systemEquiv
 			}
 		}
 
-		// Process System Equivalences (if any are passed)
-		for (const mainCourse in systemEquivalences) {
-			const nameA = mainCourse.replace(/\s+/g, '').toLowerCase();
-			const equivalents = systemEquivalences[mainCourse];
-			const idsA = nameToIds[nameA];
-			
-			for (const eqCourse of equivalents) {
-				const nameB = eqCourse.replace(/\s+/g, '').toLowerCase();
-				const idsB = nameToIds[nameB];
-
-				if (idsA && idsA.length > 0 && idsB && idsB.length > 0) {
-					union(idsA[0], idsB[0]);
-				}
-			}
-		}
 	}
 
 	// 4. Also Union rows that share the exact same name (base case)
@@ -288,6 +273,72 @@ export const computeRetakeExclusionsMap = (terms, equivalences = [], systemEquiv
 						const excludeFromTerm = instance.termIndex + 1;
 						cumulativeExclusions[instance.rowId] = excludeFromTerm;
 					}
+				}
+			}
+		}
+	}
+
+	// System equivalencies: each configured pair (mainCourse → eqCourse) is processed
+	// in complete isolation — no Union-Find, no bridging. If A→B and B→C are both
+	// configured, A and C will never end up in the same group unless A→C is also configured.
+	for (const mainCourse in systemEquivalences) {
+		const mainName = mainCourse.replace(/\s+/g, '').toLowerCase();
+		const mainIds = nameToIds[mainName] || [];
+
+		for (const eqCourse of systemEquivalences[mainCourse]) {
+			const eqName = eqCourse.replace(/\s+/g, '').toLowerCase();
+			const eqIds = nameToIds[eqName] || [];
+
+			if (mainIds.length === 0 || eqIds.length === 0) continue;
+
+			const pairInstances = [...mainIds, ...eqIds]
+				.map(id => allRows[id])
+				.filter(Boolean)
+				.map(r => ({
+					rowId: r.id,
+					termIndex: r.termIndex,
+					termName: r.termName,
+					grade: r.grade,
+					units: parseFloat(r.units) || 0,
+					name: r.name,
+				}))
+				.sort((a, b) => a.termIndex - b.termIndex);
+
+			if (pairInstances.length < 2) continue;
+
+			// Find the best grade within this pair
+			let bestInstance = null;
+			let bestGradeValue = -1;
+
+			for (const instance of pairInstances) {
+				const gradeValue = SCALE.points[instance.grade];
+				if (gradeValue !== null && gradeValue !== undefined) {
+					if (
+						bestInstance === null ||
+						gradeValue > bestGradeValue ||
+						(gradeValue === bestGradeValue && instance.termIndex > bestInstance.termIndex)
+					) {
+						bestGradeValue = gradeValue;
+						bestInstance = instance;
+					}
+				}
+			}
+
+			if (!bestInstance) continue;
+
+			const groupId = `sys:${mainName}:${eqName}`;
+			retakeGroups[groupId] = pairInstances;
+
+			for (const instance of pairInstances) {
+				retakeChainInfo[instance.rowId] = {
+					inRetakeChain: true,
+					groupId,
+					bestRowId: bestInstance.rowId,
+					bestTermIndex: bestInstance.termIndex,
+				};
+
+				if (instance.rowId !== bestInstance.rowId) {
+					cumulativeExclusions[instance.rowId] = instance.termIndex + 1;
 				}
 			}
 		}
