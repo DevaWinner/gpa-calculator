@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Select from "react-select";
 import data from "../data/religionSections.json";
@@ -32,6 +32,31 @@ function studentTypeForCountry(code) {
 
 // Strips the trailing internal hour-of-week index, e.g. "Thursday 05:00 PM UTC+0 (89)" -> "Thursday 05:00 PM UTC+0".
 const cleanTime = (s) => (s ? s.replace(/\s*\(\d+\)\s*$/, "") : s);
+
+function Toggle({ checked, onChange, label }) {
+	return (
+		<button
+			type="button"
+			role="switch"
+			aria-checked={checked}
+			onClick={() => onChange(!checked)}
+			className="flex items-center gap-2.5 text-sm font-medium text-gray-700"
+		>
+			<span
+				className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+					checked ? "bg-blue-600" : "bg-gray-300"
+				}`}
+			>
+				<span
+					className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+						checked ? "translate-x-5" : "translate-x-0.5"
+					}`}
+				/>
+			</span>
+			{label}
+		</button>
+	);
+}
 
 function Field({ label, children, hint }) {
 	return (
@@ -136,12 +161,21 @@ function ReligionLookup() {
 	const navigate = useNavigate();
 	const countries = useMemo(() => getSupportedCountries(), []);
 
+	useEffect(() => {
+		const previous = document.title;
+		document.title = "Religion Course Finder";
+		return () => {
+			document.title = previous;
+		};
+	}, []);
+
 	const [course, setCourse] = useState("");
 	const [term, setTerm] = useState("");
 	const [country, setCountry] = useState("");
 	const [region, setRegion] = useState(""); // CMIS sub-area for multi-area countries (US)
 	const [zone, setZone] = useState("");
 	const [eligibleOnly, setEligibleOnly] = useState(true);
+	const [allAreas, setAllAreas] = useState(false); // show sections from every CMIS area
 
 	const areaInfo = useMemo(() => (country ? getAreasForCountry(country) : { areas: [], multi: false }), [country]);
 	const zones = useMemo(() => (country ? getZonesForCountry(country) : []), [country]);
@@ -167,17 +201,24 @@ function ReligionLookup() {
 	const selectedAreas = areaInfo.multi ? (region ? [region] : []) : areaInfo.areas;
 	const studentType = country ? studentTypeForCountry(country) : null;
 
-	const ready = course && term && country && zone && selectedAreas.length > 0;
+	// In all-areas mode the region/area is irrelevant, so it isn't required.
+	const ready =
+		course && term && country && zone && (allAreas || selectedAreas.length > 0);
 
 	const eligibleKey = ELIGIBILITY.find((e) => e.studentType === studentType)?.key;
 
-	// Sections matching course/term/area (before the eligibility toggle is applied).
+	// Sections matching course/term (+ area unless all-areas), before the
+	// eligibility toggle is applied.
 	const baseMatches = useMemo(() => {
 		if (!ready) return [];
 		return data.sections.filter(
-			(s) => s.active && s.course === course && s.term === term && selectedAreas.includes(s.area)
+			(s) =>
+				s.active &&
+				s.course === course &&
+				s.term === term &&
+				(allAreas || selectedAreas.includes(s.area))
 		);
-	}, [ready, course, term, selectedAreas]);
+	}, [ready, course, term, selectedAreas, allAreas]);
 
 	// The eligibility toggle only does something if some matching section is
 	// actually closed to this student type — otherwise it's a no-op, so hide it.
@@ -189,15 +230,17 @@ function ReligionLookup() {
 	const results = useMemo(() => {
 		const filtered =
 			eligibleOnly && eligibleKey ? baseMatches.filter((s) => s[eligibleKey]) : baseMatches;
+		const timeOrder = (s) => ((s.utcDay + 6) % 7) * 24 + s.utcHour;
 		return filtered
 			.map((s) => ({ section: s, local: convertSectionToLocal(s, zone, term) }))
 			.sort((a, b) => {
-				// sort by local weekday then time using the underlying UTC instant order
-				const ai = ((a.section.utcDay + 6) % 7) * 24 + a.section.utcHour;
-				const bi = ((b.section.utcDay + 6) % 7) * 24 + b.section.utcHour;
-				return ai - bi;
+				// In all-areas mode group by area first, then by local weekday/time.
+				if (allAreas && a.section.area !== b.section.area) {
+					return a.section.area.localeCompare(b.section.area);
+				}
+				return timeOrder(a.section) - timeOrder(b.section);
 			});
-	}, [baseMatches, eligibleOnly, eligibleKey, zone, term]);
+	}, [baseMatches, eligibleOnly, eligibleKey, zone, term, allAreas]);
 
 	const courseName = data.courses.find((c) => c.course === course)?.name;
 	const refDate = term ? TERM_REFERENCE_DATES[term] : null;
@@ -210,15 +253,19 @@ function ReligionLookup() {
 					<div>
 						<h1 className="text-3xl font-black tracking-tight text-blue-700">Religion Course Finder</h1>
 						<p className="mt-1 text-sm text-gray-500">
-							Find available religion sections by term and convert gathering times to your local time.
+							Internal tool — locate religion sections by course, term, and area, with gathering
+							times converted to the destination's local time.
 						</p>
 					</div>
-					<button
-						onClick={() => navigate("/")}
-						className="self-start rounded-lg border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50"
-					>
-						← Back to Calculator
-					</button>
+					<div className="flex flex-col items-start gap-3 sm:items-end">
+						<button
+							onClick={() => navigate("/")}
+							className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50"
+						>
+							← Back to Calculator
+						</button>
+						<Toggle checked={allAreas} onChange={setAllAreas} label="Show sections from all areas" />
+					</div>
 				</div>
 
 				{/* Selection panel */}
@@ -242,7 +289,7 @@ function ReligionLookup() {
 							/>
 						</Field>
 
-						<Field label="Country">
+						<Field label="Destination Country">
 							<SearchSelect
 								options={countryOptions}
 								value={country}
@@ -251,8 +298,8 @@ function ReligionLookup() {
 							/>
 						</Field>
 
-						{areaInfo.multi && (
-							<Field label="Region (CMIS Area)" hint="Your country spans several areas — pick one.">
+						{areaInfo.multi && !allAreas && (
+							<Field label="Region (CMIS Area)" hint="This country spans several CMIS areas — pick one.">
 								<SearchSelect
 									options={regionOptions}
 									value={region}
@@ -263,7 +310,7 @@ function ReligionLookup() {
 						)}
 
 						{zones.length > 1 && (
-							<Field label="Time Zone" hint="Your country has multiple time zones.">
+							<Field label="Time Zone" hint="This country has multiple time zones.">
 								<SearchSelect
 									options={zoneOptions}
 									value={zone}
@@ -282,7 +329,7 @@ function ReligionLookup() {
 								onChange={(e) => setEligibleOnly(e.target.checked)}
 								className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
 							/>
-							Only show sections open to {studentType} students
+							Only sections open to {studentType} students
 						</label>
 					)}
 				</div>
@@ -291,11 +338,12 @@ function ReligionLookup() {
 				<div className="mt-8">
 					{!ready ? (
 						<div className="rounded-xl border border-dashed border-gray-300 bg-white py-16 text-center text-gray-400">
-							Select a course, term, and country to see available sections.
+							Select a course, term, and destination country to locate sections.
 						</div>
 					) : results.length === 0 ? (
 						<div className="rounded-xl border border-dashed border-gray-300 bg-white py-16 text-center text-gray-500">
-							No active sections found for {course} in {term} for the selected area.
+							No active sections found for {course} in {term}
+							{allAreas ? " across all areas." : " for the selected area."}
 						</div>
 					) : (
 						<>
@@ -303,10 +351,11 @@ function ReligionLookup() {
 								<h2 className="text-lg font-bold text-gray-800">
 									{results.length} section{results.length === 1 ? "" : "s"} — {course}
 									{courseName ? ` (${courseName})` : ""}
+									{allAreas ? " · all areas" : ""}
 								</h2>
 							</div>
 							<p className="mb-4 text-xs text-gray-400">
-								Times shown in your local zone ({zone}), computed for the term's reference week
+								Times shown in the destination's local zone ({zone}), computed for the term's reference week
 								{refDate ? ` of ${refDate}` : ""}. Daylight-saving time is applied automatically.
 							</p>
 							<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
