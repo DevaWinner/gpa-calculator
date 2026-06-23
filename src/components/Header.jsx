@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom";
+
 function Header({ clearAll, onNavigateTraining, onStartTour, onOpenEquivalences }) {
+	const navigate = useNavigate();
 	return (
 		<header className="px-4 sm:px-6 pt-8 mb-10">
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -22,6 +25,12 @@ function Header({ clearAll, onNavigateTraining, onStartTour, onOpenEquivalences 
 						className="rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 px-3 py-2 text-sm font-medium transition-colors"
 					>
 						Training
+					</button>
+					<button
+						onClick={() => navigate("/religion")}
+						className="rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 px-3 py-2 text-sm font-medium transition-colors"
+					>
+						Religion Finder
 					</button>
 					<button
 						onClick={clearAll}
