@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 /**
- * Converts docs/Book2.xlsx (religion course section schedule) into
+ * Converts docs/religion-sections.xlsx (religion course section schedule) into
  * src/data/religionSections.json for the /religion lookup view.
  *
  * Re-run whenever the spreadsheet is updated:
- *   node scripts/convertReligionData.mjs [path/to/Book2.xlsx]
+ *   node scripts/convertReligionData.mjs [path/to/workbook.xlsx]
  *
  * No xlsx dependency: unzips the workbook with the system `unzip` and parses
- * the SpreadsheetML XML directly (same approach validated against the file).
+ * the SpreadsheetML XML directly. Exporters differ in dialect, so the parser
+ * tolerates namespaced tags (<x:row>), inline strings instead of a shared
+ * string table, self-closing empty cells, and rows without `r` cell refs
+ * (columns are then taken positionally).
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -19,7 +22,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const xlsxPath = process.argv[2]
   ? path.resolve(process.argv[2])
-  : path.join(repoRoot, "docs", "Book2.xlsx");
+  : path.join(repoRoot, "docs", "religion-sections.xlsx");
 const outPath = path.join(repoRoot, "src", "data", "religionSections.json");
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -36,8 +39,15 @@ function unzipWorkbook(file) {
   return dir;
 }
 
+/** Drops namespace prefixes (`<x:row>` -> `<row>`) so one set of regexes works. */
+function stripNamespaces(xml) {
+  return xml.replace(/<(\/?)[A-Za-z][\w.-]*:/g, "<$1");
+}
+
 function readSharedStrings(dir) {
-  const xml = fs.readFileSync(path.join(dir, "xl", "sharedStrings.xml"), "utf8");
+  const file = path.join(dir, "xl", "sharedStrings.xml");
+  if (!fs.existsSync(file)) return []; // workbook uses inline strings only
+  const xml = stripNamespaces(fs.readFileSync(file, "utf8"));
   const strings = [];
   const re = /<si>(.*?)<\/si>/gs;
   let m;
@@ -65,20 +75,31 @@ function colNum(ref) {
 }
 
 function readRows(dir, strings) {
-  const xml = fs.readFileSync(path.join(dir, "xl", "worksheets", "sheet1.xml"), "utf8");
-  const rows = [...xml.matchAll(/<row[^>]*>(.*?)<\/row>/gs)];
+  const xml = stripNamespaces(
+    fs.readFileSync(path.join(dir, "xl", "worksheets", "sheet1.xml"), "utf8")
+  );
+  const rows = [...xml.matchAll(/<row[^>]*>(.*?)<\/row>|<row[^>]*\/>/gs)];
   return rows.map((r) => {
-    const cells = [
-      ...r[1].matchAll(
-        /<c r="([A-Z]+\d+)"(?:[^>]*t="([^"]*)")?[^>]*>(?:<v>(.*?)<\/v>|<is>(.*?)<\/is>)?<\/c>/gs
-      ),
-    ];
     const obj = {};
-    for (const c of cells) {
-      let v = c[3];
-      if (c[2] === "s") v = strings[parseInt(v, 10)];
-      else if (c[2] === "inlineStr") v = decode((c[4] || "").replace(/<t[^>]*>(.*?)<\/t>/gs, "$1"));
-      obj[colNum(c[1])] = v ?? "";
+    let col = 0;
+    // Matches both `<c ...>…</c>` and self-closing `<c ... />` (empty cell).
+    for (const c of (r[1] || "").matchAll(/<c([^>]*?)(?:\/>|>(.*?)<\/c>)/gs)) {
+      const attrs = c[1];
+      const inner = c[2] || "";
+      const ref = attrs.match(/\br="([A-Z]+\d+)"/);
+      // Without an `r` ref, cells are positional — including the empty ones.
+      col = ref ? colNum(ref[1]) : col + 1;
+      const type = attrs.match(/\bt="([^"]*)"/)?.[1] || "n";
+      const rawValue = inner.match(/<v>(.*?)<\/v>/s)?.[1] ?? "";
+
+      let v;
+      if (type === "s") v = strings[parseInt(rawValue, 10)] ?? "";
+      else if (type === "inlineStr")
+        v = decode([...inner.matchAll(/<t[^>]*>(.*?)<\/t>/gs)].map((t) => t[1]).join(""));
+      else if (type === "b") v = rawValue === "1" ? "1" : "0"; // boolean cell
+      else v = decode(rawValue);
+
+      obj[col] = v ?? "";
     }
     return obj;
   });
