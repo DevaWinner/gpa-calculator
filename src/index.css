@@ -43,6 +43,33 @@
 	animation: fadeIn 0.2s ease-out;
 }
 
+/* Religion Section Finder — schedule rows settle in on a new search. */
+@keyframes rfRowIn {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.rf-row {
+	animation: rfRowIn 0.24s ease-out both;
+	transition: background-color 0.12s ease-out;
+}
+
+.rf-row:hover {
+	background-color: #f8fafc;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.rf-row {
+		animation: none;
+	}
+}
+
 /* Pointer events for icon buttons */
 button svg,
 button svg * {

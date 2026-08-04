@@ -90,7 +90,13 @@ export function getSupportedCountries() {
  * Converts a section's weekly UTC gathering time into the local time of the
  * given IANA zone, DST-aware for the term's reference week.
  *
- * Returns { dayName, time, formatted, zoneAbbr, offset, crossesDay } or null.
+ * Returns null, or:
+ *   { dayName, time, formatted, zoneAbbr, offset, crossesDay,
+ *     weekdayIndex, hour, minuteOfWeek }
+ *
+ * `weekdayIndex` (0=Mon..6=Sun) groups results by the *local* day and
+ * `minuteOfWeek` sorts them — the UTC weekday can't do either, because a
+ * gathering lands on a different day for the student than it does in UTC.
  */
 export function convertSectionToLocal(section, zoneName, termCode) {
   if (!zoneName) return null;
@@ -108,5 +114,8 @@ export function convertSectionToLocal(section, zoneName, termCode) {
     zoneAbbr,
     offset,
     crossesDay: dayName !== DAY_NAMES[section.utcDay],
+    weekdayIndex: local.weekday - 1,
+    hour: local.hour,
+    minuteOfWeek: (local.weekday - 1) * 1440 + local.hour * 60 + local.minute,
   };
 }

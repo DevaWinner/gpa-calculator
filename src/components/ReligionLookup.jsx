@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Select from "react-select";
 import data from "../data/religionSections.json";
 import {
@@ -10,17 +10,13 @@ import {
 	TERM_REFERENCE_DATES,
 } from "../utils/religionTime.js";
 
-const TERM_LABELS = {
-	"26B3": "26B3",
-	"26B4": "26B4",
-	"26B5": "26B5",
-};
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-// Friendly label for a section's eligibility flags.
+// Eligibility flags, in the order they read best.
 const ELIGIBILITY = [
-	{ key: "allowDomestic", label: "Domestic", studentType: "domestic", color: "bg-emerald-100 text-emerald-800" },
-	{ key: "allowFilipino", label: "Filipino", studentType: "filipino", color: "bg-violet-100 text-violet-800" },
-	{ key: "allowInternational", label: "International", studentType: "international", color: "bg-sky-100 text-sky-800" },
+	{ key: "allowDomestic", label: "Domestic", studentType: "domestic" },
+	{ key: "allowFilipino", label: "Filipino", studentType: "filipino" },
+	{ key: "allowInternational", label: "International", studentType: "international" },
 ];
 
 // Infer the student type from the chosen country (drives the eligibility filter).
@@ -30,8 +26,29 @@ function studentTypeForCountry(code) {
 	return "international";
 }
 
-// Strips the trailing internal hour-of-week index, e.g. "Thursday 05:00 PM UTC+0 (89)" -> "Thursday 05:00 PM UTC+0".
-const cleanTime = (s) => (s ? s.replace(/\s*\(\d+\)\s*$/, "") : s);
+/**
+ * The one thing a timezone conversion can tell you that the source data can't:
+ * whether the gathering lands at an hour the student can realistically attend.
+ * Anything inside 6am–10pm is unremarkable and gets no decoration.
+ */
+function unsociable(hour) {
+	if (hour < 6) return "Overnight";
+	if (hour >= 22) return "Late";
+	return null;
+}
+
+// "Thursday 05:00 PM UTC+0 (89)" -> "5:00 PM". The weekday is already the group
+// header and the trailing number is an internal hour-of-week index.
+function bareTime(raw) {
+	const m = raw?.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+	return m ? `${parseInt(m[1], 10)}:${m[2]} ${m[3].toUpperCase()}` : raw || "—";
+}
+
+const MoonIcon = (props) => (
+	<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+		<path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z" />
+	</svg>
+);
 
 function Toggle({ checked, onChange, label }) {
 	return (
@@ -40,20 +57,20 @@ function Toggle({ checked, onChange, label }) {
 			role="switch"
 			aria-checked={checked}
 			onClick={() => onChange(!checked)}
-			className="flex items-center gap-2.5 text-sm font-medium text-gray-700"
+			className="group flex items-center gap-2 rounded-md py-1 text-sm text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
 		>
 			<span
-				className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-					checked ? "bg-blue-600" : "bg-gray-300"
+				className={`relative inline-flex h-[18px] w-8 shrink-0 items-center rounded-full transition-colors ${
+					checked ? "bg-blue-700" : "bg-slate-300 group-hover:bg-slate-400"
 				}`}
 			>
 				<span
-					className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-						checked ? "translate-x-5" : "translate-x-0.5"
+					className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
+						checked ? "translate-x-[16px]" : "translate-x-0.5"
 					}`}
 				/>
 			</span>
-			{label}
+			<span className={checked ? "font-medium text-slate-900" : ""}>{label}</span>
 		</button>
 	);
 }
@@ -61,45 +78,45 @@ function Toggle({ checked, onChange, label }) {
 function Field({ label, children, hint }) {
 	return (
 		<label className="flex flex-col gap-1.5">
-			<span className="text-xs font-bold uppercase tracking-wide text-gray-500">{label}</span>
+			<span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</span>
 			{children}
-			{hint && <span className="text-[11px] text-gray-400">{hint}</span>}
+			{hint && <span className="text-[11px] leading-snug text-slate-400">{hint}</span>}
 		</label>
 	);
 }
 
-// react-select styling tuned to match the app's blue/tailwind look.
 const selectStyles = {
 	control: (base, state) => ({
 		...base,
-		minHeight: "38px",
+		minHeight: "40px",
 		borderRadius: "0.5rem",
-		borderColor: state.isFocused ? "#3b82f6" : "#d1d5db",
-		boxShadow: state.isFocused ? "0 0 0 2px #bfdbfe" : "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-		"&:hover": { borderColor: state.isFocused ? "#3b82f6" : "#9ca3af" },
+		backgroundColor: "white",
+		borderColor: state.isFocused ? "#1d4ed8" : "#cbd5e1",
+		boxShadow: state.isFocused ? "0 0 0 3px rgb(29 78 216 / 0.15)" : "none",
+		"&:hover": { borderColor: state.isFocused ? "#1d4ed8" : "#94a3b8" },
 		fontSize: "0.875rem",
 	}),
-	placeholder: (base) => ({ ...base, color: "#9ca3af" }),
-	menu: (base) => ({ ...base, zIndex: 30, fontSize: "0.875rem" }),
+	placeholder: (base) => ({ ...base, color: "#94a3b8" }),
+	menu: (base) => ({ ...base, zIndex: 40, fontSize: "0.875rem", borderRadius: "0.5rem", overflow: "hidden" }),
 	option: (base, state) => ({
 		...base,
-		backgroundColor: state.isSelected ? "#2563eb" : state.isFocused ? "#eff6ff" : "white",
-		color: state.isSelected ? "white" : "#111827",
+		backgroundColor: state.isSelected ? "#1d4ed8" : state.isFocused ? "#eff6ff" : "white",
+		color: state.isSelected ? "white" : "#0f172a",
 		cursor: "pointer",
 	}),
 };
 
 /** Searchable single-select wrapper. Takes/returns plain string values. */
-function SearchSelect({ options, value, onChange, placeholder, isDisabled }) {
+function SearchSelect({ options, value, onChange, placeholder, inputId }) {
 	const selected = options.find((o) => o.value === value) || null;
 	return (
 		<Select
+			inputId={inputId}
 			classNamePrefix="rsel"
 			options={options}
 			value={selected}
 			onChange={(opt) => onChange(opt ? opt.value : "")}
 			placeholder={placeholder}
-			isDisabled={isDisabled}
 			isClearable
 			styles={selectStyles}
 			menuPlacement="auto"
@@ -107,58 +124,120 @@ function SearchSelect({ options, value, onChange, placeholder, isDisabled }) {
 	);
 }
 
-function SeatBadge({ section }) {
+/** One section, as a chip under its time slot. Seats are the deciding number. */
+function SectionChip({ section, ineligible }) {
 	const full = section.available <= 0;
+	const openTo = ELIGIBILITY.filter((e) => section[e.key]).map((e) => e.label);
+	const title =
+		`Section ${section.section} · ${section.area} · ` +
+		`${section.registered}/${section.sectionSize} enrolled · ` +
+		`open to ${openTo.join(", ") || "no one"}`;
+
 	return (
 		<span
-			className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${
-				full ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"
+			title={title}
+			className={`inline-flex items-baseline gap-1.5 rounded-md border px-2 py-1 text-xs tabular-nums ${
+				ineligible
+					? "border-amber-300 bg-amber-50 text-amber-800"
+					: full
+						? "border-slate-200 bg-slate-50 text-slate-400"
+						: "border-slate-300 bg-white text-slate-900"
 			}`}
 		>
-			{full ? "Full" : `${section.available} seat${section.available === 1 ? "" : "s"} open`}
+			<span className="font-mono font-semibold">{section.section}</span>
+			<span className={full ? "text-slate-400" : "font-medium text-emerald-700"}>
+				{full ? "full" : section.available}
+			</span>
 		</span>
 	);
 }
 
-function SectionCard({ section, local }) {
+/**
+ * A local time at which this course gathers. Sections meeting at the same time
+ * are interchangeable to the student, so the time leads and the sections become
+ * inventory underneath it — which collapses a repetitive list into a decision.
+ */
+function TimeSlot({ slot, index, onCopy, copied }) {
+	const late = unsociable(slot.hour);
+	const openCount = slot.rows.filter((r) => r.section.available > 0).length;
+
 	return (
-		<div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-			<div className="flex flex-wrap items-start justify-between gap-3">
-				<div>
-					<div className="flex items-center gap-2">
-						<span className="text-xs font-bold uppercase tracking-wide text-blue-700">
-							Section {section.section}
+		<li
+			className="rf-row group flex flex-col gap-2 border-l-2 py-3 pl-3 pr-2 sm:flex-row sm:gap-5 sm:pl-4"
+			style={{
+				animationDelay: `${Math.min(index, 10) * 25}ms`,
+				borderLeftColor: late ? "#a5b4fc" : "transparent",
+			}}
+		>
+			{/* Left rail: the answer to "when?" */}
+			<div className="sm:w-36 sm:shrink-0">
+				<div className="flex items-baseline gap-1.5">
+					<span
+						className={`text-xl font-bold tabular-nums tracking-tight ${
+							late ? "text-indigo-700" : "text-slate-900"
+						}`}
+					>
+						{slot.time}
+					</span>
+					{late && <MoonIcon className="h-3 w-3 shrink-0 text-indigo-500" />}
+					{late && (
+						<span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-indigo-600">
+							{late}
 						</span>
-						<SeatBadge section={section} />
-					</div>
-					<div className="mt-2 text-2xl font-black tracking-tight text-gray-900">
-						{local ? local.formatted : "—"}
-					</div>
-					<div className="mt-1 space-y-0.5 text-xs text-gray-400">
-						<div>Mountain: {cleanTime(section.mountainTime)}</div>
-						<div>UTC: {cleanTime(section.utcTime)}</div>
-						<div>Area: {section.area}</div>
-					</div>
+					)}
 				</div>
-				<div className="flex flex-wrap items-center justify-end gap-1.5">
-					{ELIGIBILITY.filter((e) => section[e.key]).map((e) => (
-						<span key={e.key} className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${e.color}`}>
-							{e.label}
+				<dl className="mt-1 font-mono text-[11px] leading-tight text-slate-400">
+					<div className="flex gap-1.5">
+						<dt className="w-6">MT</dt>
+						<dd className="tabular-nums">{slot.mountain}</dd>
+					</div>
+					<div className="flex gap-1.5">
+						<dt className="w-6">UTC</dt>
+						<dd className="tabular-nums">{slot.utc}</dd>
+					</div>
+				</dl>
+			</div>
+
+			{/* Right: the inventory at that time */}
+			<div className="min-w-0 flex-1">
+				<div className="mb-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-slate-500">
+					{slot.area && <span className="font-medium text-slate-700">{slot.area}</span>}
+					{slot.area && <span className="text-slate-300">·</span>}
+					<span>
+						<strong className="font-semibold tabular-nums text-slate-700">{slot.rows.length}</strong> section
+						{slot.rows.length === 1 ? "" : "s"}
+					</span>
+					<span className="text-slate-300">·</span>
+					<span className={openCount ? "" : "text-red-700"}>
+						{openCount ? `${openCount} with open seats` : "all full"}
+					</span>
+					{slot.crossesDay && (
+						<span className="text-slate-400" title="Falls on a different day than the published UTC time">
+							· day shifts
 						</span>
+					)}
+				</div>
+				<div className="flex flex-wrap items-center gap-1.5">
+					{slot.rows.map(({ section, ineligible }) => (
+						<SectionChip key={section.section + section.area} section={section} ineligible={ineligible} />
 					))}
+					<button
+						type="button"
+						onClick={onCopy}
+						title="Copy this time and its open sections as a line you can paste to a student"
+						className="ml-1 rounded-md px-2 py-1 text-[11px] font-medium text-slate-400 transition hover:bg-blue-50 hover:text-blue-700 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:opacity-0 sm:group-hover:opacity-100"
+					>
+						{copied ? "Copied" : "Copy"}
+					</button>
 				</div>
 			</div>
-			<div className="mt-3 flex items-center gap-4 border-t border-gray-100 pt-2 text-xs text-gray-500">
-				<span>
-					<strong className="text-gray-700">{section.registered}</strong>/{section.sectionSize} enrolled
-				</span>
-			</div>
-		</div>
+		</li>
 	);
 }
 
 function ReligionLookup() {
 	const navigate = useNavigate();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const countries = useMemo(() => getSupportedCountries(), []);
 
 	useEffect(() => {
@@ -169,22 +248,48 @@ function ReligionLookup() {
 		};
 	}, []);
 
-	const [course, setCourse] = useState("");
-	const [term, setTerm] = useState("");
-	const [country, setCountry] = useState("");
-	const [region, setRegion] = useState(""); // CMIS sub-area for multi-area countries (US)
-	const [zone, setZone] = useState("");
+	// One term in the data is the common case — don't make it a required click
+	// when there's only one possible answer. It reappears as a select if the
+	// next export carries more than one.
+	const singleTerm = data.terms.length === 1 ? data.terms[0] : "";
+
+	const [course, setCourse] = useState(() => searchParams.get("course") || "");
+	const [term, setTerm] = useState(() => searchParams.get("term") || singleTerm);
+	const [country, setCountry] = useState(() => searchParams.get("country") || "");
+	const [region, setRegion] = useState(() => searchParams.get("region") || ""); // CMIS sub-area
+	const [zone, setZone] = useState(() => searchParams.get("zone") || "");
 	const [eligibleOnly, setEligibleOnly] = useState(true);
-	const [allAreas, setAllAreas] = useState(false); // show sections from every CMIS area
+	const [openOnly, setOpenOnly] = useState(false);
+	const [allAreas, setAllAreas] = useState(() => searchParams.get("all") === "1");
+	const [copiedKey, setCopiedKey] = useState("");
 
 	const areaInfo = useMemo(() => (country ? getAreasForCountry(country) : { areas: [], multi: false }), [country]);
 	const zones = useMemo(() => (country ? getZonesForCountry(country) : []), [country]);
+
+	// A country restored from the URL still needs its default zone/region filled in.
+	useEffect(() => {
+		if (!country) return;
+		if (!zone && zones.length) setZone(zones[0].name);
+		if (!region && !areaInfo.multi && areaInfo.areas.length) setRegion(areaInfo.areas[0]);
+	}, [country, zone, region, zones, areaInfo]);
+
+	// Keep the query in the URL so a lookup can be pasted into chat or refreshed.
+	useEffect(() => {
+		const next = {};
+		if (course) next.course = course;
+		if (term && term !== singleTerm) next.term = term;
+		if (country) next.country = country;
+		if (region) next.region = region;
+		if (zone) next.zone = zone;
+		if (allAreas) next.all = "1";
+		setSearchParams(next, { replace: true });
+	}, [course, term, country, region, zone, allAreas, singleTerm, setSearchParams]);
 
 	const courseOptions = useMemo(
 		() => data.courses.map((c) => ({ value: c.course, label: `${c.course} — ${c.name}` })),
 		[]
 	);
-	const termOptions = useMemo(() => data.terms.map((t) => ({ value: t, label: TERM_LABELS[t] || t })), []);
+	const termOptions = useMemo(() => data.terms.map((t) => ({ value: t, label: t })), []);
 	const countryOptions = useMemo(() => countries.map((c) => ({ value: c.code, label: c.name })), [countries]);
 	const regionOptions = useMemo(() => areaInfo.areas.map((a) => ({ value: a, label: a })), [areaInfo]);
 	const zoneOptions = useMemo(() => zones.map((z) => ({ value: z.name, label: z.label })), [zones]);
@@ -200,79 +305,160 @@ function ReligionLookup() {
 
 	const selectedAreas = areaInfo.multi ? (region ? [region] : []) : areaInfo.areas;
 	const studentType = country ? studentTypeForCountry(country) : null;
-
-	// In all-areas mode the region/area is irrelevant, so it isn't required.
-	const ready =
-		course && term && country && zone && (allAreas || selectedAreas.length > 0);
-
 	const eligibleKey = ELIGIBILITY.find((e) => e.studentType === studentType)?.key;
 
+	// In all-areas mode the region/area is irrelevant, so it isn't required.
+	const ready = course && term && country && zone && (allAreas || selectedAreas.length > 0);
+
+	// What's still missing, so the empty state can say so instead of stalling.
+	const missing = [];
+	if (!course) missing.push("a course");
+	if (!term) missing.push("a term");
+	if (!country) missing.push("a destination country");
+	else if (!allAreas && !selectedAreas.length) missing.push("a region");
+
 	// Sections matching course/term (+ area unless all-areas), before the
-	// eligibility toggle is applied.
+	// eligibility and seat toggles are applied.
 	const baseMatches = useMemo(() => {
 		if (!ready) return [];
 		return data.sections.filter(
-			(s) =>
-				s.active &&
-				s.course === course &&
-				s.term === term &&
-				(allAreas || selectedAreas.includes(s.area))
+			(s) => s.active && s.course === course && s.term === term && (allAreas || selectedAreas.includes(s.area))
 		);
 	}, [ready, course, term, selectedAreas, allAreas]);
 
-	// The eligibility toggle only does something if some matching section is
-	// actually closed to this student type — otherwise it's a no-op, so hide it.
+	// Each toggle only does something if it would actually remove a row —
+	// otherwise it's a no-op control, so hide it.
 	const hasIneligible = useMemo(
 		() => !!eligibleKey && baseMatches.some((s) => !s[eligibleKey]),
 		[baseMatches, eligibleKey]
 	);
+	const hasFull = useMemo(() => baseMatches.some((s) => s.available <= 0), [baseMatches]);
 
 	const results = useMemo(() => {
-		const filtered =
-			eligibleOnly && eligibleKey ? baseMatches.filter((s) => s[eligibleKey]) : baseMatches;
-		const timeOrder = (s) => ((s.utcDay + 6) % 7) * 24 + s.utcHour;
+		let filtered = baseMatches;
+		if (eligibleOnly && eligibleKey) filtered = filtered.filter((s) => s[eligibleKey]);
+		if (openOnly) filtered = filtered.filter((s) => s.available > 0);
 		return filtered
-			.map((s) => ({ section: s, local: convertSectionToLocal(s, zone, term) }))
-			.sort((a, b) => {
-				// In all-areas mode group by area first, then by local weekday/time.
-				if (allAreas && a.section.area !== b.section.area) {
-					return a.section.area.localeCompare(b.section.area);
-				}
-				return timeOrder(a.section) - timeOrder(b.section);
-			});
-	}, [baseMatches, eligibleOnly, eligibleKey, zone, term, allAreas]);
+			.map((s) => ({
+				section: s,
+				local: convertSectionToLocal(s, zone, term),
+				ineligible: eligibleKey ? !s[eligibleKey] : false,
+			}))
+			.filter((r) => r.local);
+	}, [baseMatches, eligibleOnly, eligibleKey, openOnly, zone, term]);
+
+	/**
+	 * Collapse to one entry per local gathering time — sections meeting at the
+	 * same moment are the same choice for the student. Grouped by the *local*
+	 * weekday, which the UTC weekday can't stand in for.
+	 */
+	const days = useMemo(() => {
+		const slots = new Map();
+		for (const r of results) {
+			const key = `${r.local.weekdayIndex}|${r.local.minuteOfWeek}` + (allAreas ? `|${r.section.area}` : "");
+			if (!slots.has(key)) {
+				slots.set(key, {
+					key,
+					weekdayIndex: r.local.weekdayIndex,
+					minuteOfWeek: r.local.minuteOfWeek,
+					time: r.local.time,
+					hour: r.local.hour,
+					zoneAbbr: r.local.zoneAbbr,
+					dayName: r.local.dayName,
+					crossesDay: r.local.crossesDay,
+					mountain: bareTime(r.section.mountainTime),
+					utc: bareTime(r.section.utcTime),
+					area: allAreas ? r.section.area : "",
+					rows: [],
+				});
+			}
+			slots.get(key).rows.push(r);
+		}
+
+		for (const slot of slots.values()) {
+			// Sections with the most room first — that's what gets recommended.
+			slot.rows.sort((a, b) => b.section.available - a.section.available);
+		}
+
+		const byDay = new Map();
+		for (const slot of [...slots.values()].sort(
+			(a, b) => a.minuteOfWeek - b.minuteOfWeek || a.area.localeCompare(b.area)
+		)) {
+			if (!byDay.has(slot.weekdayIndex)) byDay.set(slot.weekdayIndex, []);
+			byDay.get(slot.weekdayIndex).push(slot);
+		}
+		return [...byDay.entries()]
+			.sort((a, b) => a[0] - b[0])
+			.map(([index, list]) => ({
+				name: WEEKDAYS[index] || "Unknown",
+				slots: list,
+				count: list.reduce((n, s) => n + s.rows.length, 0),
+			}));
+	}, [results, allAreas]);
 
 	const courseName = data.courses.find((c) => c.course === course)?.name;
+	const countryName = countries.find((c) => c.code === country)?.name;
 	const refDate = term ? TERM_REFERENCE_DATES[term] : null;
+	const zoneAbbr = results[0]?.local?.zoneAbbr || "";
+	const slotCount = days.reduce((n, d) => n + d.slots.length, 0);
+	const lateSlots = days.reduce((n, d) => n + d.slots.filter((s) => unsociable(s.hour)).length, 0);
+
+	// The end of the workflow is telling the student — hand over a pasteable line.
+	const copySlot = useCallback(
+		(slot) => {
+			const open = slot.rows.filter((r) => r.section.available > 0);
+			const list = open.length
+				? open.map((r) => `${r.section.section} (${r.section.available} seats)`).join(", ")
+				: "no sections with open seats";
+			const line =
+				`${course} ${courseName} — ${slot.dayName} ${slot.time} ${slot.zoneAbbr} ` +
+				`(Mountain ${slot.mountain}) · ${list}`;
+			navigator.clipboard?.writeText(line).then(
+				() => {
+					setCopiedKey(slot.key);
+					setTimeout(() => setCopiedKey(""), 1600);
+				},
+				() => {}
+			);
+		},
+		[course, courseName]
+	);
 
 	return (
-		<div className="min-h-screen bg-gray-50 text-gray-900 antialiased">
-			<main className="mx-auto max-w-4xl px-4 pb-24 pt-8 sm:px-6">
-				{/* Header */}
-				<div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-					<div>
-						<h1 className="text-3xl font-black tracking-tight text-blue-700">Religion Course Finder</h1>
-						<p className="mt-1 text-sm text-gray-500">
-							Internal tool — locate religion sections by course, term, and area, with gathering
-							times converted to the destination's local time.
-						</p>
+		<div className="min-h-screen bg-slate-50 text-slate-900 antialiased">
+			<header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+				<div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+					<div className="flex items-baseline gap-3">
+						<h1 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-900">
+							Religion Section Finder
+						</h1>
+						{singleTerm && (
+							<span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
+								{singleTerm}
+							</span>
+						)}
 					</div>
-					<div className="flex flex-col items-start gap-3 sm:items-end">
-						<button
-							onClick={() => navigate("/")}
-							className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50"
-						>
-							← Back to Calculator
-						</button>
-						<Toggle checked={allAreas} onChange={setAllAreas} label="Show sections from all areas" />
-					</div>
+					<button
+						onClick={() => navigate("/")}
+						className="rounded-md px-2 py-1 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+					>
+						← Calculator
+					</button>
 				</div>
+			</header>
 
-				{/* Selection panel */}
-				<div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-					<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+			<main className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6">
+				<p className="mb-5 max-w-2xl text-sm leading-relaxed text-slate-500">
+					Find a religion gathering for a student, with every time converted to their local clock. Times
+					outside 6am–10pm are flagged.
+				</p>
+
+				{/* Query panel */}
+				<div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 						<Field label="Course">
 							<SearchSelect
+								inputId="rf-course"
 								options={courseOptions}
 								value={course}
 								onChange={setCourse}
@@ -280,17 +466,21 @@ function ReligionLookup() {
 							/>
 						</Field>
 
-						<Field label="Term">
-							<SearchSelect
-								options={termOptions}
-								value={term}
-								onChange={setTerm}
-								placeholder="Select a term…"
-							/>
-						</Field>
+						{!singleTerm && (
+							<Field label="Term">
+								<SearchSelect
+									inputId="rf-term"
+									options={termOptions}
+									value={term}
+									onChange={setTerm}
+									placeholder="Select a term…"
+								/>
+							</Field>
+						)}
 
-						<Field label="Destination Country">
+						<Field label="Student's country">
 							<SearchSelect
+								inputId="rf-country"
 								options={countryOptions}
 								value={country}
 								onChange={handleCountry}
@@ -299,8 +489,9 @@ function ReligionLookup() {
 						</Field>
 
 						{areaInfo.multi && !allAreas && (
-							<Field label="Region (CMIS Area)" hint="This country spans several CMIS areas — pick one.">
+							<Field label="Region" hint="This country spans several CMIS areas.">
 								<SearchSelect
+									inputId="rf-region"
 									options={regionOptions}
 									value={region}
 									onChange={setRegion}
@@ -310,8 +501,9 @@ function ReligionLookup() {
 						)}
 
 						{zones.length > 1 && (
-							<Field label="Time Zone" hint="This country has multiple time zones.">
+							<Field label="Time zone" hint="This country has more than one.">
 								<SearchSelect
+									inputId="rf-zone"
 									options={zoneOptions}
 									value={zone}
 									onChange={setZone}
@@ -321,46 +513,92 @@ function ReligionLookup() {
 						)}
 					</div>
 
-					{ready && hasIneligible && (
-						<label className="mt-4 flex items-center gap-2 text-sm text-gray-600">
-							<input
-								type="checkbox"
+					<div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-slate-100 pt-3">
+						<Toggle checked={allAreas} onChange={setAllAreas} label="Search every area" />
+						{ready && hasFull && (
+							<Toggle checked={openOnly} onChange={setOpenOnly} label="Hide full sections" />
+						)}
+						{ready && hasIneligible && (
+							<Toggle
 								checked={eligibleOnly}
-								onChange={(e) => setEligibleOnly(e.target.checked)}
-								className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+								onChange={setEligibleOnly}
+								label={`Only sections open to ${studentType} students`}
 							/>
-							Only sections open to {studentType} students
-						</label>
-					)}
+						)}
+					</div>
 				</div>
 
 				{/* Results */}
 				<div className="mt-8">
 					{!ready ? (
-						<div className="rounded-xl border border-dashed border-gray-300 bg-white py-16 text-center text-gray-400">
-							Select a course, term, and destination country to locate sections.
+						<div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+							<p className="text-sm text-slate-500">
+								Choose {missing.join(", ").replace(/, ([^,]*)$/, " and $1")} to see gathering times.
+							</p>
 						</div>
 					) : results.length === 0 ? (
-						<div className="rounded-xl border border-dashed border-gray-300 bg-white py-16 text-center text-gray-500">
-							No active sections found for {course} in {term}
-							{allAreas ? " across all areas." : " for the selected area."}
+						<div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+							<p className="text-sm font-medium text-slate-700">No sections match this search.</p>
+							<p className="mt-1 text-sm text-slate-500">
+								{allAreas
+									? `${course} has no active sections in ${term}.`
+									: "Try turning on “Search every area”, or clear the filters above."}
+							</p>
 						</div>
 					) : (
 						<>
-							<div className="mb-3 flex items-baseline justify-between">
-								<h2 className="text-lg font-bold text-gray-800">
-									{results.length} section{results.length === 1 ? "" : "s"} — {course}
-									{courseName ? ` (${courseName})` : ""}
-									{allAreas ? " · all areas" : ""}
-								</h2>
+							<div className="mb-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+								<h2 className="font-mono text-xl font-bold tracking-tight text-slate-900">{course}</h2>
+								<span className="text-base text-slate-600">{courseName}</span>
 							</div>
-							<p className="mb-4 text-xs text-gray-400">
-								Times shown in the destination's local zone ({zone}), computed for the term's reference week
-								{refDate ? ` of ${refDate}` : ""}. Daylight-saving time is applied automatically.
+							<p className="text-sm text-slate-500" aria-live="polite">
+								<strong className="font-semibold tabular-nums text-slate-900">{results.length}</strong>{" "}
+								section{results.length === 1 ? "" : "s"} at{" "}
+								<strong className="font-semibold tabular-nums text-slate-900">{slotCount}</strong>{" "}
+								gathering time{slotCount === 1 ? "" : "s"} in{" "}
+								{allAreas ? "every area" : selectedAreas.join(", ")}
+								{lateSlots > 0 && (
+									<>
+										{" · "}
+										<span className="text-indigo-700">
+											{lateSlots} outside 6am–10pm for this student
+										</span>
+									</>
+								)}
 							</p>
-							<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-								{results.map(({ section, local }) => (
-									<SectionCard key={section.section + section.area} section={section} local={local} />
+							<p className="mt-1 text-[11px] text-slate-400">
+								Times shown for {countryName} —{" "}
+								<span className="font-mono">
+									{zone}
+									{zoneAbbr ? ` (${zoneAbbr})` : ""}
+								</span>
+								{refDate ? `, reference week of ${refDate} with DST applied` : ""}
+							</p>
+
+							<div className="mt-6 space-y-7">
+								{days.map((day) => (
+									<section key={day.name}>
+										<div className="flex items-baseline gap-3">
+											<h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-900">
+												{day.name}
+											</h3>
+											<span className="h-px flex-1 bg-slate-200" />
+											<span className="text-[11px] tabular-nums text-slate-400">
+												{day.count} section{day.count === 1 ? "" : "s"}
+											</span>
+										</div>
+										<ul className="mt-1 divide-y divide-slate-100">
+											{day.slots.map((slot, i) => (
+												<TimeSlot
+													key={slot.key}
+													slot={slot}
+													index={i}
+													copied={copiedKey === slot.key}
+													onCopy={() => copySlot(slot)}
+												/>
+											))}
+										</ul>
+									</section>
 								))}
 							</div>
 						</>
