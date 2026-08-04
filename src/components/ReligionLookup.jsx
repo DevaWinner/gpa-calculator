@@ -10,13 +10,25 @@ import {
 	TERM_REFERENCE_DATES,
 } from "../utils/religionTime.js";
 
-const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const WEEKDAYS = [
+	"Monday",
+	"Tuesday",
+	"Wednesday",
+	"Thursday",
+	"Friday",
+	"Saturday",
+	"Sunday",
+];
 
 // Eligibility flags, in the order they read best.
 const ELIGIBILITY = [
 	{ key: "allowDomestic", label: "Domestic", studentType: "domestic" },
 	{ key: "allowFilipino", label: "Filipino", studentType: "filipino" },
-	{ key: "allowInternational", label: "International", studentType: "international" },
+	{
+		key: "allowInternational",
+		label: "International",
+		studentType: "international",
+	},
 ];
 
 // Infer the student type from the chosen country (drives the eligibility filter).
@@ -70,7 +82,9 @@ function Toggle({ checked, onChange, label }) {
 					}`}
 				/>
 			</span>
-			<span className={checked ? "font-medium text-slate-900" : ""}>{label}</span>
+			<span className={checked ? "font-medium text-slate-900" : ""}>
+				{label}
+			</span>
 		</button>
 	);
 }
@@ -78,9 +92,13 @@ function Toggle({ checked, onChange, label }) {
 function Field({ label, children, hint }) {
 	return (
 		<label className="flex flex-col gap-1.5">
-			<span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</span>
+			<span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+				{label}
+			</span>
 			{children}
-			{hint && <span className="text-[11px] leading-snug text-slate-400">{hint}</span>}
+			{hint && (
+				<span className="text-[11px] leading-snug text-slate-400">{hint}</span>
+			)}
 		</label>
 	);
 }
@@ -97,10 +115,20 @@ const selectStyles = {
 		fontSize: "0.875rem",
 	}),
 	placeholder: (base) => ({ ...base, color: "#94a3b8" }),
-	menu: (base) => ({ ...base, zIndex: 40, fontSize: "0.875rem", borderRadius: "0.5rem", overflow: "hidden" }),
+	menu: (base) => ({
+		...base,
+		zIndex: 40,
+		fontSize: "0.875rem",
+		borderRadius: "0.5rem",
+		overflow: "hidden",
+	}),
 	option: (base, state) => ({
 		...base,
-		backgroundColor: state.isSelected ? "#1d4ed8" : state.isFocused ? "#eff6ff" : "white",
+		backgroundColor: state.isSelected
+			? "#1d4ed8"
+			: state.isFocused
+				? "#eff6ff"
+				: "white",
 		color: state.isSelected ? "white" : "#0f172a",
 		cursor: "pointer",
 	}),
@@ -145,7 +173,9 @@ function SectionChip({ section, ineligible }) {
 			}`}
 		>
 			<span className="font-mono font-semibold">{section.section}</span>
-			<span className={full ? "text-slate-400" : "font-medium text-emerald-700"}>
+			<span
+				className={full ? "text-slate-400" : "font-medium text-emerald-700"}
+			>
 				{full ? "full" : section.available}
 			</span>
 		</span>
@@ -201,10 +231,15 @@ function TimeSlot({ slot, index, onCopy, copied }) {
 			{/* Right: the inventory at that time */}
 			<div className="min-w-0 flex-1">
 				<div className="mb-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-slate-500">
-					{slot.area && <span className="font-medium text-slate-700">{slot.area}</span>}
+					{slot.area && (
+						<span className="font-medium text-slate-700">{slot.area}</span>
+					)}
 					{slot.area && <span className="text-slate-300">·</span>}
 					<span>
-						<strong className="font-semibold tabular-nums text-slate-700">{slot.rows.length}</strong> section
+						<strong className="font-semibold tabular-nums text-slate-700">
+							{slot.rows.length}
+						</strong>{" "}
+						section
 						{slot.rows.length === 1 ? "" : "s"}
 					</span>
 					<span className="text-slate-300">·</span>
@@ -212,14 +247,21 @@ function TimeSlot({ slot, index, onCopy, copied }) {
 						{openCount ? `${openCount} with open seats` : "all full"}
 					</span>
 					{slot.crossesDay && (
-						<span className="text-slate-400" title="Falls on a different day than the published UTC time">
+						<span
+							className="text-slate-400"
+							title="Falls on a different day than the published UTC time"
+						>
 							· day shifts
 						</span>
 					)}
 				</div>
 				<div className="flex flex-wrap items-center gap-1.5">
 					{slot.rows.map(({ section, ineligible }) => (
-						<SectionChip key={section.section + section.area} section={section} ineligible={ineligible} />
+						<SectionChip
+							key={section.section + section.area}
+							section={section}
+							ineligible={ineligible}
+						/>
 					))}
 					<button
 						type="button"
@@ -242,7 +284,7 @@ function ReligionLookup() {
 
 	useEffect(() => {
 		const previous = document.title;
-		document.title = "Religion Course Finder";
+		document.title = "Religion Section finder";
 		return () => {
 			document.title = previous;
 		};
@@ -254,23 +296,36 @@ function ReligionLookup() {
 	const singleTerm = data.terms.length === 1 ? data.terms[0] : "";
 
 	const [course, setCourse] = useState(() => searchParams.get("course") || "");
-	const [term, setTerm] = useState(() => searchParams.get("term") || singleTerm);
-	const [country, setCountry] = useState(() => searchParams.get("country") || "");
+	const [term, setTerm] = useState(
+		() => searchParams.get("term") || singleTerm,
+	);
+	const [country, setCountry] = useState(
+		() => searchParams.get("country") || "",
+	);
 	const [region, setRegion] = useState(() => searchParams.get("region") || ""); // CMIS sub-area
 	const [zone, setZone] = useState(() => searchParams.get("zone") || "");
 	const [eligibleOnly, setEligibleOnly] = useState(true);
 	const [openOnly, setOpenOnly] = useState(false);
-	const [allAreas, setAllAreas] = useState(() => searchParams.get("all") === "1");
+	const [allAreas, setAllAreas] = useState(
+		() => searchParams.get("all") === "1",
+	);
 	const [copiedKey, setCopiedKey] = useState("");
 
-	const areaInfo = useMemo(() => (country ? getAreasForCountry(country) : { areas: [], multi: false }), [country]);
-	const zones = useMemo(() => (country ? getZonesForCountry(country) : []), [country]);
+	const areaInfo = useMemo(
+		() => (country ? getAreasForCountry(country) : { areas: [], multi: false }),
+		[country],
+	);
+	const zones = useMemo(
+		() => (country ? getZonesForCountry(country) : []),
+		[country],
+	);
 
 	// A country restored from the URL still needs its default zone/region filled in.
 	useEffect(() => {
 		if (!country) return;
 		if (!zone && zones.length) setZone(zones[0].name);
-		if (!region && !areaInfo.multi && areaInfo.areas.length) setRegion(areaInfo.areas[0]);
+		if (!region && !areaInfo.multi && areaInfo.areas.length)
+			setRegion(areaInfo.areas[0]);
 	}, [country, zone, region, zones, areaInfo]);
 
 	// Keep the query in the URL so a lookup can be pasted into chat or refreshed.
@@ -283,16 +338,41 @@ function ReligionLookup() {
 		if (zone) next.zone = zone;
 		if (allAreas) next.all = "1";
 		setSearchParams(next, { replace: true });
-	}, [course, term, country, region, zone, allAreas, singleTerm, setSearchParams]);
+	}, [
+		course,
+		term,
+		country,
+		region,
+		zone,
+		allAreas,
+		singleTerm,
+		setSearchParams,
+	]);
 
 	const courseOptions = useMemo(
-		() => data.courses.map((c) => ({ value: c.course, label: `${c.course} — ${c.name}` })),
-		[]
+		() =>
+			data.courses.map((c) => ({
+				value: c.course,
+				label: `${c.course} — ${c.name}`,
+			})),
+		[],
 	);
-	const termOptions = useMemo(() => data.terms.map((t) => ({ value: t, label: t })), []);
-	const countryOptions = useMemo(() => countries.map((c) => ({ value: c.code, label: c.name })), [countries]);
-	const regionOptions = useMemo(() => areaInfo.areas.map((a) => ({ value: a, label: a })), [areaInfo]);
-	const zoneOptions = useMemo(() => zones.map((z) => ({ value: z.name, label: z.label })), [zones]);
+	const termOptions = useMemo(
+		() => data.terms.map((t) => ({ value: t, label: t })),
+		[],
+	);
+	const countryOptions = useMemo(
+		() => countries.map((c) => ({ value: c.code, label: c.name })),
+		[countries],
+	);
+	const regionOptions = useMemo(
+		() => areaInfo.areas.map((a) => ({ value: a, label: a })),
+		[areaInfo],
+	);
+	const zoneOptions = useMemo(
+		() => zones.map((z) => ({ value: z.name, label: z.label })),
+		[zones],
+	);
 
 	// When country changes, reset/auto-pick region and zone.
 	function handleCountry(code) {
@@ -303,12 +383,19 @@ function ReligionLookup() {
 		setZone(z.length ? z[0].name : "");
 	}
 
-	const selectedAreas = areaInfo.multi ? (region ? [region] : []) : areaInfo.areas;
+	const selectedAreas = areaInfo.multi
+		? region
+			? [region]
+			: []
+		: areaInfo.areas;
 	const studentType = country ? studentTypeForCountry(country) : null;
-	const eligibleKey = ELIGIBILITY.find((e) => e.studentType === studentType)?.key;
+	const eligibleKey = ELIGIBILITY.find(
+		(e) => e.studentType === studentType,
+	)?.key;
 
 	// In all-areas mode the region/area is irrelevant, so it isn't required.
-	const ready = course && term && country && zone && (allAreas || selectedAreas.length > 0);
+	const ready =
+		course && term && country && zone && (allAreas || selectedAreas.length > 0);
 
 	// What's still missing, so the empty state can say so instead of stalling.
 	const missing = [];
@@ -322,7 +409,11 @@ function ReligionLookup() {
 	const baseMatches = useMemo(() => {
 		if (!ready) return [];
 		return data.sections.filter(
-			(s) => s.active && s.course === course && s.term === term && (allAreas || selectedAreas.includes(s.area))
+			(s) =>
+				s.active &&
+				s.course === course &&
+				s.term === term &&
+				(allAreas || selectedAreas.includes(s.area)),
 		);
 	}, [ready, course, term, selectedAreas, allAreas]);
 
@@ -330,13 +421,17 @@ function ReligionLookup() {
 	// otherwise it's a no-op control, so hide it.
 	const hasIneligible = useMemo(
 		() => !!eligibleKey && baseMatches.some((s) => !s[eligibleKey]),
-		[baseMatches, eligibleKey]
+		[baseMatches, eligibleKey],
 	);
-	const hasFull = useMemo(() => baseMatches.some((s) => s.available <= 0), [baseMatches]);
+	const hasFull = useMemo(
+		() => baseMatches.some((s) => s.available <= 0),
+		[baseMatches],
+	);
 
 	const results = useMemo(() => {
 		let filtered = baseMatches;
-		if (eligibleOnly && eligibleKey) filtered = filtered.filter((s) => s[eligibleKey]);
+		if (eligibleOnly && eligibleKey)
+			filtered = filtered.filter((s) => s[eligibleKey]);
 		if (openOnly) filtered = filtered.filter((s) => s.available > 0);
 		return filtered
 			.map((s) => ({
@@ -355,7 +450,9 @@ function ReligionLookup() {
 	const days = useMemo(() => {
 		const slots = new Map();
 		for (const r of results) {
-			const key = `${r.local.weekdayIndex}|${r.local.minuteOfWeek}` + (allAreas ? `|${r.section.area}` : "");
+			const key =
+				`${r.local.weekdayIndex}|${r.local.minuteOfWeek}` +
+				(allAreas ? `|${r.section.area}` : "");
 			if (!slots.has(key)) {
 				slots.set(key, {
 					key,
@@ -382,7 +479,7 @@ function ReligionLookup() {
 
 		const byDay = new Map();
 		for (const slot of [...slots.values()].sort(
-			(a, b) => a.minuteOfWeek - b.minuteOfWeek || a.area.localeCompare(b.area)
+			(a, b) => a.minuteOfWeek - b.minuteOfWeek || a.area.localeCompare(b.area),
 		)) {
 			if (!byDay.has(slot.weekdayIndex)) byDay.set(slot.weekdayIndex, []);
 			byDay.get(slot.weekdayIndex).push(slot);
@@ -401,14 +498,19 @@ function ReligionLookup() {
 	const refDate = term ? TERM_REFERENCE_DATES[term] : null;
 	const zoneAbbr = results[0]?.local?.zoneAbbr || "";
 	const slotCount = days.reduce((n, d) => n + d.slots.length, 0);
-	const lateSlots = days.reduce((n, d) => n + d.slots.filter((s) => unsociable(s.hour)).length, 0);
+	const lateSlots = days.reduce(
+		(n, d) => n + d.slots.filter((s) => unsociable(s.hour)).length,
+		0,
+	);
 
 	// The end of the workflow is telling the student — hand over a pasteable line.
 	const copySlot = useCallback(
 		(slot) => {
 			const open = slot.rows.filter((r) => r.section.available > 0);
 			const list = open.length
-				? open.map((r) => `${r.section.section} (${r.section.available} seats)`).join(", ")
+				? open
+						.map((r) => `${r.section.section} (${r.section.available} seats)`)
+						.join(", ")
 				: "no sections with open seats";
 			const line =
 				`${course} ${courseName} — ${slot.dayName} ${slot.time} ${slot.zoneAbbr} ` +
@@ -418,40 +520,39 @@ function ReligionLookup() {
 					setCopiedKey(slot.key);
 					setTimeout(() => setCopiedKey(""), 1600);
 				},
-				() => {}
+				() => {},
 			);
 		},
-		[course, courseName]
+		[course, courseName],
 	);
 
 	return (
 		<div className="min-h-screen bg-slate-50 text-slate-900 antialiased">
-			<header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-				<div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-					<div className="flex items-baseline gap-3">
-						<h1 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-900">
-							Religion Section Finder
-						</h1>
-						{singleTerm && (
-							<span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
-								{singleTerm}
-							</span>
-						)}
+			<main className="mx-auto max-w-5xl px-4 pb-24 pt-8 sm:px-8">
+				<header className="mb-8">
+					<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+						<div>
+							<h1 className="text-3xl font-black tracking-tight text-blue-700">
+								Religion Section finder
+							</h1>
+							<p className="mt-1 text-xs font-semibold italic text-red-600">
+								Internal Tool{singleTerm ? ` — ${singleTerm}` : ""}
+							</p>
+						</div>
+						<div className="flex flex-wrap items-center gap-2">
+							<button
+								onClick={() => navigate("/")}
+								className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50"
+							>
+								← Transcript Calculator
+							</button>
+						</div>
 					</div>
-					<button
-						onClick={() => navigate("/")}
-						className="rounded-md px-2 py-1 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-					>
-						← Calculator
-					</button>
-				</div>
-			</header>
-
-			<main className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6">
-				<p className="mb-5 max-w-2xl text-sm leading-relaxed text-slate-500">
-					Find a religion gathering for a student, with every time converted to their local clock. Times
-					outside 6am–10pm are flagged.
-				</p>
+					<p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
+						Find a religion gathering for a student, with every time converted
+						to their local clock. Times outside 6am–10pm are flagged.
+					</p>
+				</header>
 
 				{/* Query panel */}
 				<div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -489,7 +590,10 @@ function ReligionLookup() {
 						</Field>
 
 						{areaInfo.multi && !allAreas && (
-							<Field label="Region" hint="This country spans several CMIS areas.">
+							<Field
+								label="Region"
+								hint="This country spans several CMIS areas."
+							>
 								<SearchSelect
 									inputId="rf-region"
 									options={regionOptions}
@@ -514,9 +618,17 @@ function ReligionLookup() {
 					</div>
 
 					<div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-slate-100 pt-3">
-						<Toggle checked={allAreas} onChange={setAllAreas} label="Search every area" />
+						<Toggle
+							checked={allAreas}
+							onChange={setAllAreas}
+							label="Search every area"
+						/>
 						{ready && hasFull && (
-							<Toggle checked={openOnly} onChange={setOpenOnly} label="Hide full sections" />
+							<Toggle
+								checked={openOnly}
+								onChange={setOpenOnly}
+								label="Hide full sections"
+							/>
 						)}
 						{ready && hasIneligible && (
 							<Toggle
@@ -533,12 +645,15 @@ function ReligionLookup() {
 					{!ready ? (
 						<div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
 							<p className="text-sm text-slate-500">
-								Choose {missing.join(", ").replace(/, ([^,]*)$/, " and $1")} to see gathering times.
+								Choose {missing.join(", ").replace(/, ([^,]*)$/, " and $1")} to
+								see gathering times.
 							</p>
 						</div>
 					) : results.length === 0 ? (
 						<div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-							<p className="text-sm font-medium text-slate-700">No sections match this search.</p>
+							<p className="text-sm font-medium text-slate-700">
+								No sections match this search.
+							</p>
 							<p className="mt-1 text-sm text-slate-500">
 								{allAreas
 									? `${course} has no active sections in ${term}.`
@@ -548,13 +663,19 @@ function ReligionLookup() {
 					) : (
 						<>
 							<div className="mb-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-								<h2 className="font-mono text-xl font-bold tracking-tight text-slate-900">{course}</h2>
+								<h2 className="font-mono text-xl font-bold tracking-tight text-slate-900">
+									{course}
+								</h2>
 								<span className="text-base text-slate-600">{courseName}</span>
 							</div>
 							<p className="text-sm text-slate-500" aria-live="polite">
-								<strong className="font-semibold tabular-nums text-slate-900">{results.length}</strong>{" "}
+								<strong className="font-semibold tabular-nums text-slate-900">
+									{results.length}
+								</strong>{" "}
 								section{results.length === 1 ? "" : "s"} at{" "}
-								<strong className="font-semibold tabular-nums text-slate-900">{slotCount}</strong>{" "}
+								<strong className="font-semibold tabular-nums text-slate-900">
+									{slotCount}
+								</strong>{" "}
 								gathering time{slotCount === 1 ? "" : "s"} in{" "}
 								{allAreas ? "every area" : selectedAreas.join(", ")}
 								{lateSlots > 0 && (
@@ -572,7 +693,9 @@ function ReligionLookup() {
 									{zone}
 									{zoneAbbr ? ` (${zoneAbbr})` : ""}
 								</span>
-								{refDate ? `, reference week of ${refDate} with DST applied` : ""}
+								{refDate
+									? `, reference week of ${refDate} with DST applied`
+									: ""}
 							</p>
 
 							<div className="mt-6 space-y-7">
