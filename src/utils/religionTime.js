@@ -15,9 +15,10 @@ const COUNTRY_AREA_MAP = countryAreaData.map;
  * Any date within the term works; we snap to that week's Monday internally.
  */
 export const TERM_REFERENCE_DATES = {
-  "26B3": "2026-09-21",
-  "26B4": "2026-11-09",
-  "26B5": "2027-01-11",
+  "26B3": "2026-05-04",
+  "26B4": "2026-06-29",
+  "26B5": "2026-08-31",
+  "26B6": "2026-10-26",
 };
 
 const DAY_NAMES = [
